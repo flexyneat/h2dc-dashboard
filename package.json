@@ -1,6 +1,6 @@
 {
   "name": "h2dc-dashboard",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "private": true,
   "type": "module",
   "description": "A configurable Home Assistant wall-dashboard card derived from the commissioned H2DC interface.",

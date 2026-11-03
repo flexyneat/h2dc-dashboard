@@ -4,6 +4,7 @@ import type { H2DCConfig } from "./domain";
 import { H2DCDashboardEditor } from "./editor/h2dc-dashboard-editor";
 import { escapeHtml, type HomeAssistant } from "./home-assistant";
 import { CARD_STYLES } from "./styles";
+import { H2DC_PACKAGE_VERSION } from "./version";
 import { renderView } from "./view-renderers";
 
 export { dispatchDashboardAction } from "./actions";
@@ -11,13 +12,11 @@ export { lightCapabilities } from "./entity-capabilities";
 export { escapeHtml, readEntity, readNumericState } from "./home-assistant";
 export { derivePowerFlow, formatPower } from "./power-flow";
 export { TOKENS } from "./tokens";
+export { H2DC_PACKAGE_VERSION } from "./version";
 export type { DashboardAction } from "./actions";
 export type { H2DCConfig, H2DCView } from "./domain";
 export type { HomeAssistant } from "./home-assistant";
 export type { PowerFlowState } from "./power-flow";
-
-/** Package version shown in the Home Assistant browser console. */
-export const H2DC_PACKAGE_VERSION = "0.1.0-alpha.1";
 
 /** Metadata presented by Home Assistant's custom-card picker. */
 interface CustomCardMetadata {

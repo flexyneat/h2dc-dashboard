@@ -50,7 +50,8 @@ describe("renderView", () => {
   it("renders every stable route without crossing the service boundary", () => {
     const fixture = hassFixture();
     for (const view of H2DC_VIEWS) {
-      const output = renderView({ config: configFor(view), hass: fixture.hass, now: new Date("2026-11-02T10:04:00+01:00"), reducedMotion: false });
+      // Construct wall-clock time in the runner's local zone so rendered UI remains deterministic across CI time zones.
+      const output = renderView({ config: configFor(view), hass: fixture.hass, now: new Date(2026, 10, 2, 10, 4), reducedMotion: false });
       expect(output).toContain("<main");
     }
     expect(fixture.callService).not.toHaveBeenCalled();
@@ -58,7 +59,7 @@ describe("renderView", () => {
 
   it("keeps four Home summary cards and the compact climate controls", () => {
     const fixture = hassFixture();
-    const output = renderView({ config: configFor("home"), hass: fixture.hass, now: new Date("2026-11-02T10:04:00+01:00"), reducedMotion: false });
+    const output = renderView({ config: configFor("home"), hass: fixture.hass, now: new Date(2026, 10, 2, 10, 4), reducedMotion: false });
     expect(output.match(/class="glass summary"/gu)).toHaveLength(4);
     expect(output).toContain("10:04 AM");
     expect(output).toContain('data-action="climate-mode"');

@@ -742,9 +742,9 @@ header { position: relative; min-height: 12rem; }
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
   .flow-arrow { display: none; }
 }
-`;
+`, E = "0.1.0-alpha.2";
 // src/entity-capabilities.ts
-function E(e) {
+function D(e) {
 	if (e === void 0 || e.state === "unavailable" || e.state === "unknown") return {
 		available: !1,
 		dimmable: !1,
@@ -758,18 +758,18 @@ function E(e) {
 	};
 }
 // src/power-flow.ts
-function D(e, t, n) {
+function O(e, t, n) {
 	return e.status === "unavailable" ? "unavailable" : Math.abs(e.value) < t ? "idle" : e.value > 0 ? n : n === "source" ? "sink" : "source";
 }
-function O(e, t, n) {
+function k(e, t, n) {
 	return e.status === "unavailable" ? "unavailable" : e.value >= t ? n : "idle";
 }
-function k(e, t) {
+function A(e, t) {
 	if (t.freshness === void 0) return "fresh";
 	let n = v(e, t.freshness);
 	return n.status === "unavailable" ? "unavailable" : n.entity.state === "on" ? "fresh" : "stale";
 }
-function A(e, t, n, r, i) {
+function j(e, t, n, r, i) {
 	if (e === "stale") return "Telemetry stale";
 	if (e === "unavailable") return "Telemetry freshness unavailable";
 	let a = [
@@ -783,8 +783,8 @@ function A(e, t, n, r, i) {
 	].filter(Boolean);
 	return a.length === 0 || o.length === 0 ? "Power flow idle" : `${a.join(" + ")} → ${o.join(" + ")}`;
 }
-function j(e, t) {
-	let n = t.entities.energy, r = k(e, n), i = y(e, n.solar), a = y(e, n.battery), o = y(e, n.grid), s = y(e, n.load), c = y(e, n.batterySoc);
+function M(e, t) {
+	let n = t.entities.energy, r = A(e, n), i = y(e, n.solar), a = y(e, n.battery), o = y(e, n.grid), s = y(e, n.load), c = y(e, n.batterySoc);
 	if (r !== "fresh") return {
 		freshness: r,
 		solar: "idle",
@@ -798,7 +798,7 @@ function j(e, t) {
 		batterySoc: c,
 		summary: r === "stale" ? "Telemetry stale" : "Telemetry freshness unavailable"
 	};
-	let l = O(i, t.flowThresholdW, "source"), u = t.batteryPositiveIs === "discharge" ? "source" : "sink", d = t.gridPositiveIs === "import" ? "source" : "sink", f = D(a, t.flowThresholdW, u), p = D(o, t.flowThresholdW, d), m = O(s, t.flowThresholdW, "sink");
+	let l = k(i, t.flowThresholdW, "source"), u = t.batteryPositiveIs === "discharge" ? "source" : "sink", d = t.gridPositiveIs === "import" ? "source" : "sink", f = O(a, t.flowThresholdW, u), p = O(o, t.flowThresholdW, d), m = k(s, t.flowThresholdW, "sink");
 	return {
 		freshness: r,
 		solar: l,
@@ -810,43 +810,43 @@ function j(e, t) {
 		gridPower: o,
 		loadPower: s,
 		batterySoc: c,
-		summary: A(r, l, f, p, m)
+		summary: j(r, l, f, p, m)
 	};
 }
-function M(e, t = !0) {
+function N(e, t = !0) {
 	if (e.status === "unavailable") return "—";
 	let n = t ? Math.abs(e.value) : e.value;
 	return Math.abs(n) >= 1e3 ? `${(n / 1e3).toLocaleString(void 0, { maximumFractionDigits: 2 })} kW` : `${Math.round(n).toLocaleString()} W`;
 }
 // src/view-renderers.ts
-function N(e) {
+function P(e) {
 	return `<ha-icon icon="${b(e)}" aria-hidden="true"></ha-icon>`;
 }
-function P(e, t) {
+function F(e, t) {
 	return e?.attributes[t];
 }
-function F(e, t, n) {
-	let r = P(e, t);
+function I(e, t, n) {
+	let r = F(e, t);
 	return typeof r == "string" || typeof r == "number" ? String(r) : n;
 }
-function I(e, t, n) {
-	let r = Number(P(e, t));
+function L(e, t, n) {
+	let r = Number(F(e, t));
 	return Number.isFinite(r) ? r : n;
 }
-function L(e, t, n = "Unavailable") {
+function R(e, t, n = "Unavailable") {
 	if (t === void 0 || t === "") return n;
 	let r = v(e.hass, t);
 	return r.status === "available" ? r.entity.state.replaceAll("_", " ") : n;
 }
-function R(e, t, n = 0) {
+function z(e, t, n = 0) {
 	if (t === void 0 || t === "") return "—";
 	let r = y(e.hass, t);
 	return r.status === "available" ? r.value.toLocaleString(void 0, { maximumFractionDigits: n }) : "—";
 }
-function z(e, t) {
+function B(e, t) {
 	return `${e.dashboardPath.replace(/\/$/u, "")}/${t}`;
 }
-function B(e, t, n) {
+function V(e, t, n) {
 	let r = [
 		["home", "Home"],
 		["security", "Security"],
@@ -861,9 +861,9 @@ function B(e, t, n) {
 		day: "numeric",
 		month: "long"
 	}).format(e.now);
-	return `<header><div class="brand">H2DC</div><nav class="nav" aria-label="Dashboard views">${r.map(([t, n]) => `<a class="${e.config.view === t ? "active" : ""}" href="${b(z(e.config, t))}">${n}</a>`).join("")}</nav><div class="tools">${N("mdi:magnify")}<a href="?h2dc_admin=1" aria-label="Show Home Assistant controls">${N("mdi:cog-outline")}</a></div><div class="intro"><span>${b(t)}</span><h1>${b(i)}</h1><p>${b(n)}</p></div></header>`;
+	return `<header><div class="brand">H2DC</div><nav class="nav" aria-label="Dashboard views">${r.map(([t, n]) => `<a class="${e.config.view === t ? "active" : ""}" href="${b(B(e.config, t))}">${n}</a>`).join("")}</nav><div class="tools">${P("mdi:magnify")}<a href="?h2dc_admin=1" aria-label="Show Home Assistant controls">${P("mdi:cog-outline")}</a></div><div class="intro"><span>${b(t)}</span><h1>${b(i)}</h1><p>${b(n)}</p></div></header>`;
 }
-function V(e) {
+function H(e) {
 	return {
 		"clear-night": "mdi:weather-night",
 		cloudy: "mdi:weather-cloudy",
@@ -882,93 +882,93 @@ function V(e) {
 		"windy-variant": "mdi:weather-windy-variant"
 	}[e] ?? "mdi:weather-cloudy-alert";
 }
-function H(e, t, n, r) {
+function U(e, t, n, r) {
 	return !t || r ? "" : `<polygon class="flow-arrow" points="-7,-5 7,0 -7,5"><animateMotion dur="2s" begin="${n}" repeatCount="indefinite" path="${e}" rotate="auto"/></polygon>`;
 }
-function U(e) {
+function W(e) {
 	return e === "source" || e === "sink";
 }
-function W(e) {
-	let t = j(e.hass, e.config), n = t.solar === "source" || t.battery === "source" || t.grid === "source", r = {
+function G(e) {
+	let t = M(e.hass, e.config), n = t.solar === "source" || t.battery === "source" || t.grid === "source", r = {
 		trunk: "M300 196 L300 142",
 		solar: t.solar === "sink" ? "M300 196 Q300 226 270 226 L130 226 Q100 226 100 256" : "M100 256 Q100 226 130 226 L270 226 Q300 226 300 196",
 		battery: t.battery === "sink" ? "M300 196 L300 256" : "M300 256 L300 196",
 		grid: t.grid === "sink" ? "M300 196 Q300 226 330 226 L470 226 Q500 226 500 256" : "M500 256 Q500 226 470 226 L330 226 Q300 226 300 196"
-	}, i = (e, t, n, r, i) => `<g class="node ${U(i) ? "active" : ""}" transform="translate(${e} 304)"><circle r="38"/><foreignObject x="-20" y="-20" width="40" height="40">${N(t)}</foreignObject><text y="66">${n}</text><text class="value" y="94">${b(r)}</text></g>`;
-	return `<section class="glass flow"><div class="card-title">Home energy <a href="${b(z(e.config, "energy"))}" aria-label="Open Energy">›</a></div><div class="topology"><svg viewBox="0 0 600 440" role="img" aria-label="${b(t.summary)}"><path class="track ${n ? "active" : ""}" d="M300 196 L300 142"/><path class="track ${U(t.solar) ? "active" : ""}" d="M100 256 Q100 226 130 226 L270 226 Q300 226 300 196"/><path class="track ${U(t.battery) ? "active" : ""}" d="M300 196 L300 256"/><path class="track ${U(t.grid) ? "active" : ""}" d="M300 196 Q300 226 330 226 L470 226 Q500 226 500 256"/>${H(r.trunk, n, "0s", e.reducedMotion)}${H(r.solar, U(t.solar), "-.6s", e.reducedMotion)}${H(r.battery, U(t.battery), "-1.2s", e.reducedMotion)}${H(r.grid, U(t.grid), "-1.6s", e.reducedMotion)}<g class="home-node" transform="translate(300 92)"><circle r="54"/><foreignObject x="-26" y="-26" width="52" height="52">${N("mdi:home-outline")}</foreignObject></g><g class="home-reading" transform="translate(370 78)"><text>Home load</text><text class="value" y="34">${b(M(t.loadPower))}</text></g>${i(100, "mdi:solar-power", "Solar", M(t.solarPower), t.solar)}${i(300, "mdi:battery-medium", "Battery", t.batterySoc.status === "available" ? `${Math.round(t.batterySoc.value)}%` : "—", t.battery)}${i(500, "mdi:transmission-tower", "Grid", M(t.gridPower), t.grid)}</svg></div></section>`;
+	}, i = (e, t, n, r, i) => `<g class="node ${W(i) ? "active" : ""}" transform="translate(${e} 304)"><circle r="38"/><foreignObject x="-20" y="-20" width="40" height="40">${P(t)}</foreignObject><text y="66">${n}</text><text class="value" y="94">${b(r)}</text></g>`;
+	return `<section class="glass flow"><div class="card-title">Home energy <a href="${b(B(e.config, "energy"))}" aria-label="Open Energy">›</a></div><div class="topology"><svg viewBox="0 0 600 440" role="img" aria-label="${b(t.summary)}"><path class="track ${n ? "active" : ""}" d="M300 196 L300 142"/><path class="track ${W(t.solar) ? "active" : ""}" d="M100 256 Q100 226 130 226 L270 226 Q300 226 300 196"/><path class="track ${W(t.battery) ? "active" : ""}" d="M300 196 L300 256"/><path class="track ${W(t.grid) ? "active" : ""}" d="M300 196 Q300 226 330 226 L470 226 Q500 226 500 256"/>${U(r.trunk, n, "0s", e.reducedMotion)}${U(r.solar, W(t.solar), "-.6s", e.reducedMotion)}${U(r.battery, W(t.battery), "-1.2s", e.reducedMotion)}${U(r.grid, W(t.grid), "-1.6s", e.reducedMotion)}<g class="home-node" transform="translate(300 92)"><circle r="54"/><foreignObject x="-26" y="-26" width="52" height="52">${P("mdi:home-outline")}</foreignObject></g><g class="home-reading" transform="translate(370 78)"><text>Home load</text><text class="value" y="34">${b(N(t.loadPower))}</text></g>${i(100, "mdi:solar-power", "Solar", N(t.solarPower), t.solar)}${i(300, "mdi:battery-medium", "Battery", t.batterySoc.status === "available" ? `${Math.round(t.batterySoc.value)}%` : "—", t.battery)}${i(500, "mdi:transmission-tower", "Grid", N(t.gridPower), t.grid)}</svg></div></section>`;
 }
-function G(e) {
-	let t = e.config.entities.climate, n = v(e.hass, t), r = n.status === "available" ? n.entity : void 0, i = r?.state === "cool", a = I(r, "temperature", 18), o = I(r, "min_temp", 16), s = I(r, "max_temp", 30), c = I(r, "target_temp_step", 1), l = Math.max(o, a - c), u = Math.min(s, a + c);
-	return `<div class="cooling-control"><button class="cool-toggle ${i ? "cool" : "off"}" data-action="climate-mode" data-entity="${t}" data-mode="${i ? "off" : "cool"}" aria-pressed="${i}" ${r === void 0 ? "disabled" : ""}>${N(i ? "mdi:snowflake" : "mdi:power")}<span><b>${i ? "Cool" : "Off"}</b><small>${i ? `Set to ${a} °C` : "Tap to cool"}</small></span></button><div class="target-control" aria-label="Target temperature"><button data-action="climate-temperature" data-entity="${t}" data-value="${l}" aria-label="Decrease target temperature" ${a <= o || r === void 0 ? "disabled" : ""}>−</button><strong>${a}°</strong><button data-action="climate-temperature" data-entity="${t}" data-value="${u}" aria-label="Increase target temperature" ${a >= s || r === void 0 ? "disabled" : ""}>+</button></div></div>`;
+function K(e) {
+	let t = e.config.entities.climate, n = v(e.hass, t), r = n.status === "available" ? n.entity : void 0, i = r?.state === "cool", a = L(r, "temperature", 18), o = L(r, "min_temp", 16), s = L(r, "max_temp", 30), c = L(r, "target_temp_step", 1), l = Math.max(o, a - c), u = Math.min(s, a + c);
+	return `<div class="cooling-control"><button class="cool-toggle ${i ? "cool" : "off"}" data-action="climate-mode" data-entity="${t}" data-mode="${i ? "off" : "cool"}" aria-pressed="${i}" ${r === void 0 ? "disabled" : ""}>${P(i ? "mdi:snowflake" : "mdi:power")}<span><b>${i ? "Cool" : "Off"}</b><small>${i ? `Set to ${a} °C` : "Tap to cool"}</small></span></button><div class="target-control" aria-label="Target temperature"><button data-action="climate-temperature" data-entity="${t}" data-value="${l}" aria-label="Decrease target temperature" ${a <= o || r === void 0 ? "disabled" : ""}>−</button><strong>${a}°</strong><button data-action="climate-temperature" data-entity="${t}" data-value="${u}" aria-label="Increase target temperature" ${a >= s || r === void 0 ? "disabled" : ""}>+</button></div></div>`;
 }
-function ee(e, t, n, r) {
+function q(e, t, n, r) {
 	let i = v(e.hass, t), a = i.status === "available" ? i.entity.state : "unavailable";
-	return `<button class="control ${b(a)}" data-action="toggle" data-entity="${b(t)}" aria-pressed="${a === "on"}" ${i.status === "unavailable" ? "disabled" : ""}>${N(r)}<span>${b(n)}</span><small>${b(a)}</small></button>`;
+	return `<button class="control ${b(a)}" data-action="toggle" data-entity="${b(t)}" aria-pressed="${a === "on"}" ${i.status === "unavailable" ? "disabled" : ""}>${P(r)}<span>${b(n)}</span><small>${b(a)}</small></button>`;
 }
-function K(e, t, n, r, i) {
-	return `<a class="glass summary" href="${b(z(e.config, i))}" aria-label="Open ${b(n)}: ${b(r)}"><span class="round">${N(t)}</span><div><strong>${b(n)}</strong><small>${b(r)}</small></div><b aria-hidden="true">›</b></a>`;
+function J(e, t, n, r, i) {
+	return `<a class="glass summary" href="${b(B(e.config, i))}" aria-label="Open ${b(n)}: ${b(r)}"><span class="round">${P(t)}</span><div><strong>${b(n)}</strong><small>${b(r)}</small></div><b aria-hidden="true">›</b></a>`;
 }
-function te(e) {
-	let t = e.config.entities, n = L(e, t.alarm).toLowerCase(), r = t.lights.filter((t) => v(e.hass, t.entity).status === "available" && e.hass.states[t.entity]?.state === "on").length, i = v(e.hass, t.weather), a = i.status === "available" ? i.entity : void 0, o = a?.state ?? "unavailable", s = F(a, "temperature", "—"), c = F(a, "humidity", "—"), l = new Intl.DateTimeFormat(void 0, {
+function ee(e) {
+	let t = e.config.entities, n = R(e, t.alarm).toLowerCase(), r = t.lights.filter((t) => v(e.hass, t.entity).status === "available" && e.hass.states[t.entity]?.state === "on").length, i = v(e.hass, t.weather), a = i.status === "available" ? i.entity : void 0, o = a?.state ?? "unavailable", s = I(a, "temperature", "—"), c = I(a, "humidity", "—"), l = new Intl.DateTimeFormat(void 0, {
 		hour: "numeric",
 		minute: "2-digit"
-	}).format(e.now), u = t.media.primary, d = u === void 0 ? void 0 : v(e.hass, u), f = d?.status === "available" ? d.entity : void 0, p = L(e, t.climate, "off"), m = t.nearby.map((t) => ee(e, t.entity, t.label, t.icon)).join("");
-	return `${B(e, "Home overview", `Alarm ${n} · ${r} selected lights on`)}<main class="home-grid"><div class="left-stack"><section class="glass clock"><strong>${b(l)}</strong><span>${b(new Intl.DateTimeFormat(void 0, {
+	}).format(e.now), u = t.media.primary, d = u === void 0 ? void 0 : v(e.hass, u), f = d?.status === "available" ? d.entity : void 0, p = R(e, t.climate, "off"), m = t.nearby.map((t) => q(e, t.entity, t.label, t.icon)).join("");
+	return `${V(e, "Home overview", `Alarm ${n} · ${r} selected lights on`)}<main class="home-grid"><div class="left-stack"><section class="glass clock"><strong>${b(l)}</strong><span>${b(new Intl.DateTimeFormat(void 0, {
 		weekday: "long",
 		day: "numeric",
 		month: "long"
-	}).format(e.now))}</span></section><section class="glass weather weather-${b(o.replace(/[^a-z-]/gu, ""))}"><div>${N(V(o))}</div><div><strong>${b(s)} °C</strong><span>${b(o.replaceAll("_", " "))}</span><small>Humidity ${b(c)}%</small></div></section></div>${W(e)}<div class="right-stack"><section class="glass compact"><div class="card-title">Climate <a href="${b(z(e.config, "climate"))}" aria-label="Open Climate">›</a></div><div class="climate-body"><div class="climate-reading"><strong>${R(e, t.roomTemperature, 1)} °C</strong><small>Living room</small></div>${G(e)}</div></section><section class="glass compact"><div class="card-title">Now playing <a href="${b(z(e.config, "media"))}" aria-label="Open Media">›</a></div><div class="media-row">${N("mdi:volume-high")}<div><strong>${b(F(f, "media_title", "No media playing"))}</strong><small>Surround speakers</small></div>${u === void 0 ? "" : `<button class="media-action" data-action="media" data-entity="${b(u)}" data-command="media_play_pause" aria-label="Play or pause" ${f === void 0 ? "disabled" : ""}>${N("mdi:play-pause")}</button>`}</div></section><section class="glass controls"><div class="card-title">Nearby controls</div>${m || "<p>No nearby controls configured.</p>"}</section></div><div class="summary-row">${K(e, "mdi:shield-home", "Security", `Alarm ${n}`, "security")}${K(e, "mdi:lightbulb-group", "Lights", `${r} on`, "lights")}${K(e, "mdi:thermometer", "Climate", `${R(e, t.roomTemperature, 1)} °C · ${p}`, "climate")}${K(e, "mdi:solar-power", "Solar", M(y(e.hass, t.energy.solar)), "energy")}</div></main>`;
+	}).format(e.now))}</span></section><section class="glass weather weather-${b(o.replace(/[^a-z-]/gu, ""))}"><div>${P(H(o))}</div><div><strong>${b(s)} °C</strong><span>${b(o.replaceAll("_", " "))}</span><small>Humidity ${b(c)}%</small></div></section></div>${G(e)}<div class="right-stack"><section class="glass compact"><div class="card-title">Climate <a href="${b(B(e.config, "climate"))}" aria-label="Open Climate">›</a></div><div class="climate-body"><div class="climate-reading"><strong>${z(e, t.roomTemperature, 1)} °C</strong><small>Living room</small></div>${K(e)}</div></section><section class="glass compact"><div class="card-title">Now playing <a href="${b(B(e.config, "media"))}" aria-label="Open Media">›</a></div><div class="media-row">${P("mdi:volume-high")}<div><strong>${b(I(f, "media_title", "No media playing"))}</strong><small>Surround speakers</small></div>${u === void 0 ? "" : `<button class="media-action" data-action="media" data-entity="${b(u)}" data-command="media_play_pause" aria-label="Play or pause" ${f === void 0 ? "disabled" : ""}>${P("mdi:play-pause")}</button>`}</div></section><section class="glass controls"><div class="card-title">Nearby controls</div>${m || "<p>No nearby controls configured.</p>"}</section></div><div class="summary-row">${J(e, "mdi:shield-home", "Security", `Alarm ${n}`, "security")}${J(e, "mdi:lightbulb-group", "Lights", `${r} on`, "lights")}${J(e, "mdi:thermometer", "Climate", `${z(e, t.roomTemperature, 1)} °C · ${p}`, "climate")}${J(e, "mdi:solar-power", "Solar", N(y(e.hass, t.energy.solar)), "energy")}</div></main>`;
 }
-function ne(e, t) {
+function te(e, t) {
 	return typeof e == "string" && (e.startsWith("/api/") || e.startsWith("/local/") || e.startsWith("/media/") || e.startsWith("https://") || e.startsWith("data:image/")) ? e : `/api/camera_proxy/${encodeURIComponent(t)}`;
 }
-function re(e, t, n) {
+function ne(e, t, n) {
 	let r = v(e.hass, t);
-	return r.status === "unavailable" ? `<figure class="camera unavailable"><div class="camera-missing">${N("mdi:camera-off-outline")}<span>Camera unavailable</span></div><figcaption><strong>${b(n)}</strong><span>Offline</span></figcaption></figure>` : `<figure class="camera"><img src="${b(ne(P(r.entity, "entity_picture"), t))}" alt="${b(n)} camera" loading="lazy"><figcaption><strong>${b(n)}</strong><span>Live</span></figcaption></figure>`;
+	return r.status === "unavailable" ? `<figure class="camera unavailable"><div class="camera-missing">${P("mdi:camera-off-outline")}<span>Camera unavailable</span></div><figcaption><strong>${b(n)}</strong><span>Offline</span></figcaption></figure>` : `<figure class="camera"><img src="${b(te(F(r.entity, "entity_picture"), t))}" alt="${b(n)} camera" loading="lazy"><figcaption><strong>${b(n)}</strong><span>Live</span></figcaption></figure>`;
+}
+function re(e) {
+	let t = R(e, e.config.entities.alarm).toLowerCase(), n = e.config.entities.cameras, r = b(e.config.entities.alarm), i = v(e.hass, e.config.entities.alarm).status === "unavailable" ? "disabled" : "";
+	return `${V(e, "Security overview", `Alarm ${t} · ${n.length} configured zones`)}<main class="page-grid security-grid"><section class="glass alarm"><div class="card-title">Alarm system</div><div class="alarm-ring">${P("mdi:shield-outline")}</div><strong>${b(t)}</strong><div class="alarm-actions"><button class="alarm-action" data-action="alarm" data-entity="${r}" data-command="alarm_arm_home" ${i}>${P("mdi:home-outline")}Home</button><button class="alarm-action" data-action="alarm" data-entity="${r}" data-command="alarm_arm_away" ${i}>${P("mdi:walk")}Away</button><button class="alarm-action" data-action="alarm" data-entity="${r}" data-command="alarm_arm_night" ${i}>${P("mdi:weather-night")}Night</button></div></section><section class="camera-grid">${n.length === 0 ? "<section class=\"glass empty\"><div><h2>No cameras configured</h2><p>Add camera entities in the visual editor to populate this view.</p></div></section>" : n.map((t) => ne(e, t.entity, t.label)).join("")}</section></main>`;
+}
+function Y(e, t, n) {
+	return `<div class="metric"><span class="round">${P(e)}</span><div><small>${b(t)}</small><strong>${b(n)}</strong></div></div>`;
 }
 function ie(e) {
-	let t = L(e, e.config.entities.alarm).toLowerCase(), n = e.config.entities.cameras, r = b(e.config.entities.alarm), i = v(e.hass, e.config.entities.alarm).status === "unavailable" ? "disabled" : "";
-	return `${B(e, "Security overview", `Alarm ${t} · ${n.length} configured zones`)}<main class="page-grid security-grid"><section class="glass alarm"><div class="card-title">Alarm system</div><div class="alarm-ring">${N("mdi:shield-outline")}</div><strong>${b(t)}</strong><div class="alarm-actions"><button class="alarm-action" data-action="alarm" data-entity="${r}" data-command="alarm_arm_home" ${i}>${N("mdi:home-outline")}Home</button><button class="alarm-action" data-action="alarm" data-entity="${r}" data-command="alarm_arm_away" ${i}>${N("mdi:walk")}Away</button><button class="alarm-action" data-action="alarm" data-entity="${r}" data-command="alarm_arm_night" ${i}>${N("mdi:weather-night")}Night</button></div></section><section class="camera-grid">${n.length === 0 ? "<section class=\"glass empty\"><div><h2>No cameras configured</h2><p>Add camera entities in the visual editor to populate this view.</p></div></section>" : n.map((t) => re(e, t.entity, t.label)).join("")}</section></main>`;
-}
-function q(e, t, n) {
-	return `<div class="metric"><span class="round">${N(e)}</span><div><small>${b(t)}</small><strong>${b(n)}</strong></div></div>`;
-}
-function J(e) {
 	let t = e.config.entities.energy;
-	return `${B(e, "Energy overview", `${j(e.hass, e.config).summary} · Battery ${R(e, t.batterySoc)}%`)}<main class="page-grid energy-grid"><div class="page-grid"><section class="glass metric-card"><div class="card-title">Battery health</div>${q("mdi:battery", "Voltage", `${R(e, t.batteryVoltage, 2)} V`)}${q("mdi:thermometer", "Temperature", `${R(e, t.batteryTemperature, 1)} °C`)}</section><section class="glass metric-card"><div class="card-title">Inverter temperature</div>${q("mdi:thermometer", "AC", `${R(e, t.acTemperature, 1)} °C`)}${q("mdi:thermometer", "DC", `${R(e, t.dcTemperature, 1)} °C`)}</section></div>${W(e)}<section class="glass today"><div class="card-title">Today</div>${q("mdi:solar-power", "PV production", `${R(e, t.dailyPv, 1)} kWh`)}${q("mdi:transmission-tower", "Grid import", `${R(e, t.dailyGridImport, 1)} kWh`)}${q("mdi:battery-arrow-down", "Battery discharge", `${R(e, t.dailyBatteryDischarge, 1)} kWh`)}</section></main>`;
+	return `${V(e, "Energy overview", `${M(e.hass, e.config).summary} · Battery ${z(e, t.batterySoc)}%`)}<main class="page-grid energy-grid"><div class="page-grid"><section class="glass metric-card"><div class="card-title">Battery health</div>${Y("mdi:battery", "Voltage", `${z(e, t.batteryVoltage, 2)} V`)}${Y("mdi:thermometer", "Temperature", `${z(e, t.batteryTemperature, 1)} °C`)}</section><section class="glass metric-card"><div class="card-title">Inverter temperature</div>${Y("mdi:thermometer", "AC", `${z(e, t.acTemperature, 1)} °C`)}${Y("mdi:thermometer", "DC", `${z(e, t.dcTemperature, 1)} °C`)}</section></div>${G(e)}<section class="glass today"><div class="card-title">Today</div>${Y("mdi:solar-power", "PV production", `${z(e, t.dailyPv, 1)} kWh`)}${Y("mdi:transmission-tower", "Grid import", `${z(e, t.dailyGridImport, 1)} kWh`)}${Y("mdi:battery-arrow-down", "Battery discharge", `${z(e, t.dailyBatteryDischarge, 1)} kWh`)}</section></main>`;
 }
 function ae(e, t, n, r) {
-	return `<section class="glass temp-row"><span class="round">${N(r)}</span><div><small>${b(n)}</small><strong>${R(e, t, 1)} °C</strong></div><b aria-hidden="true">›</b></section>`;
+	return `<section class="glass temp-row"><span class="round">${P(r)}</span><div><small>${b(n)}</small><strong>${z(e, t, 1)} °C</strong></div><b aria-hidden="true">›</b></section>`;
 }
 function oe(e) {
 	let t = e.config.entities, n = v(e.hass, t.weather), r = n.status === "available" ? n.entity : void 0, i = t.roomTemperatures.map((t) => ae(e, t.entity, t.room, t.icon)).join("");
-	return `${B(e, "Climate overview", `Air conditioning ${L(e, t.climate, "off")} · Living room ${R(e, t.roomTemperature, 1)} °C`)}<main class="page-grid climate-grid"><div class="temps">${i || "<section class=\"glass empty\"><p>No room temperature sensors configured.</p></section>"}</div><section class="glass thermostat"><div class="card-title">Air conditioning</div><div class="climate-reading"><strong>${R(e, t.roomTemperature, 1)} °C</strong><small>Living room</small></div>${G(e)}</section><div class="climate-right"><section class="glass outside">${N(V(r?.state ?? "unavailable"))}<div><small>Outside</small><strong>${b(F(r, "temperature", "—"))} °C</strong><span>${b((r?.state ?? "Unavailable").replaceAll("_", " "))}</span></div></section></div></main>`;
+	return `${V(e, "Climate overview", `Air conditioning ${R(e, t.climate, "off")} · Living room ${z(e, t.roomTemperature, 1)} °C`)}<main class="page-grid climate-grid"><div class="temps">${i || "<section class=\"glass empty\"><p>No room temperature sensors configured.</p></section>"}</div><section class="glass thermostat"><div class="card-title">Air conditioning</div><div class="climate-reading"><strong>${z(e, t.roomTemperature, 1)} °C</strong><small>Living room</small></div>${K(e)}</section><div class="climate-right"><section class="glass outside">${P(H(r?.state ?? "unavailable"))}<div><small>Outside</small><strong>${b(I(r, "temperature", "—"))} °C</strong><span>${b((r?.state ?? "Unavailable").replaceAll("_", " "))}</span></div></section></div></main>`;
 }
 function se(e, t, n, r) {
-	let i = v(e.hass, t), a = i.status === "available" ? i.entity : void 0, o = E(a), s = a?.state ?? "unavailable", c = s === "on" ? "on" : s === "off" ? "off" : "unavailable", l = I(a, "brightness", s === "on" ? 255 : 0), u = Math.round(l / 255 * 100), d = F(a, "friendly_name", t);
-	return `<section class="glass light-card ${c}"><div class="light-heading"><span class="round">${N(r)}</span><div><small>${b(n)}</small><strong>${b(d)}</strong></div><button class="light-toggle" data-action="toggle" data-entity="${b(t)}" aria-label="Toggle ${b(d)}" aria-pressed="${s === "on"}" ${o.available ? "" : "disabled"}>${N(s === "on" ? "mdi:lightbulb-on" : "mdi:lightbulb-outline")}</button></div><div class="light-state"><span>${b(s)}</span>${o.dimmable ? `<b>${u}%</b>` : ""}</div>${o.dimmable ? `<input type="range" min="1" max="100" value="${Math.max(1, u)}" data-action="brightness" data-entity="${b(t)}" aria-label="${b(d)} brightness" ${o.available ? "" : "disabled"}>` : ""}</section>`;
+	let i = v(e.hass, t), a = i.status === "available" ? i.entity : void 0, o = D(a), s = a?.state ?? "unavailable", c = s === "on" ? "on" : s === "off" ? "off" : "unavailable", l = L(a, "brightness", s === "on" ? 255 : 0), u = Math.round(l / 255 * 100), d = I(a, "friendly_name", t);
+	return `<section class="glass light-card ${c}"><div class="light-heading"><span class="round">${P(r)}</span><div><small>${b(n)}</small><strong>${b(d)}</strong></div><button class="light-toggle" data-action="toggle" data-entity="${b(t)}" aria-label="Toggle ${b(d)}" aria-pressed="${s === "on"}" ${o.available ? "" : "disabled"}>${P(s === "on" ? "mdi:lightbulb-on" : "mdi:lightbulb-outline")}</button></div><div class="light-state"><span>${b(s)}</span>${o.dimmable ? `<b>${u}%</b>` : ""}</div>${o.dimmable ? `<input type="range" min="1" max="100" value="${Math.max(1, u)}" data-action="brightness" data-entity="${b(t)}" aria-label="${b(d)} brightness" ${o.available ? "" : "disabled"}>` : ""}</section>`;
 }
 function ce(e) {
 	let t = e.config.entities.lights, n = t.filter((t) => e.hass.states[t.entity]?.state === "on").length;
-	return `${B(e, "Lighting overview", `${n} of ${t.length} selected lights on`)}<main class="page-grid lights-grid">${t.length === 0 ? "<section class=\"glass empty\"><div><h2>No lights configured</h2><p>Add curated light entities in the visual editor. Brightness controls appear only when Home Assistant reports that capability.</p></div></section>" : t.map((t) => se(e, t.entity, t.room, t.icon)).join("")}</main>`;
+	return `${V(e, "Lighting overview", `${n} of ${t.length} selected lights on`)}<main class="page-grid lights-grid">${t.length === 0 ? "<section class=\"glass empty\"><div><h2>No lights configured</h2><p>Add curated light entities in the visual editor. Brightness controls appear only when Home Assistant reports that capability.</p></div></section>" : t.map((t) => se(e, t.entity, t.room, t.icon)).join("")}</main>`;
 }
-function Y(e, t, n, r) {
-	if (t === void 0) return `<div class="room-row unavailable"><span>${N(r)}</span><div><strong>${b(n)}</strong><small>Not configured</small></div></div>`;
+function X(e, t, n, r) {
+	if (t === void 0) return `<div class="room-row unavailable"><span>${P(r)}</span><div><strong>${b(n)}</strong><small>Not configured</small></div></div>`;
 	let i = v(e.hass, t), a = i.status === "available" ? i.entity : void 0;
-	return `<div class="room-row"><span>${N(r)}</span><div><strong>${b(n)}</strong><small>${b(F(a, "media_title", a?.state ?? "Unavailable"))}</small></div><button class="media-action" data-action="media" data-entity="${b(t)}" data-command="media_play_pause" aria-label="Play or pause ${b(n)}" ${a === void 0 ? "disabled" : ""}>${N("mdi:play-pause")}</button></div>`;
+	return `<div class="room-row"><span>${P(r)}</span><div><strong>${b(n)}</strong><small>${b(I(a, "media_title", a?.state ?? "Unavailable"))}</small></div><button class="media-action" data-action="media" data-entity="${b(t)}" data-command="media_play_pause" aria-label="Play or pause ${b(n)}" ${a === void 0 ? "disabled" : ""}>${P("mdi:play-pause")}</button></div>`;
 }
 function le(e) {
 	let t = e.config.entities.media, n = t.primary === void 0 ? void 0 : v(e.hass, t.primary), r = n?.status === "available" ? n.entity : void 0, i = t.primary === void 0 ? void 0 : b(t.primary), a = r === void 0 ? "disabled" : "";
-	return `${B(e, "Media overview", "Whole-house audio and television control")}<main class="page-grid media-grid"><section class="glass rooms"><div class="card-title">Living room</div>${Y(e, t.primary, "Surround speakers", "mdi:speaker-multiple")}${Y(e, t.livingTv, "Living room TV", "mdi:television")}</section><section class="glass rooms"><div class="card-title">Private rooms</div>${Y(e, t.bedroom, "Master bedroom", "mdi:bed-king-outline")}${Y(e, t.study, "Study", "mdi:bookshelf")}</section><section class="glass now"><div class="card-title">Now playing</div><div class="album">${N("mdi:music-note")}</div><h2>${b(F(r, "media_title", "No media playing"))}</h2><span>${b(F(r, "media_artist", "Select a source to start listening"))}</span>${i === void 0 ? "" : `<div class="transport"><button class="media-action" data-action="media" data-entity="${i}" data-command="media_previous_track" aria-label="Previous track" ${a}>${N("mdi:skip-previous")}</button><button class="media-action" data-action="media" data-entity="${i}" data-command="media_play_pause" aria-label="Play or pause" ${a}>${N("mdi:play")}</button><button class="media-action" data-action="media" data-entity="${i}" data-command="media_next_track" aria-label="Next track" ${a}>${N("mdi:skip-next")}</button></div>`}</section><section class="glass rooms"><div class="card-title">Whole home</div>${Y(e, t.family, "Family lounge", "mdi:sofa-outline")}${Y(e, t.kitchen, "Kitchen", "mdi:silverware-fork-knife")}${Y(e, t.dining, "Dining", "mdi:table-furniture")}</section><section class="glass quick"><div class="card-title">Quick controls</div>${i === void 0 ? "" : `<button class="media-action" data-action="media" data-entity="${i}" data-command="media_pause" ${a}>${N("mdi:pause")} Pause all</button>`}${e.config.sonoraUrl === void 0 ? "<p>Sonos controller URL not configured.</p>" : `<a href="${b(e.config.sonoraUrl)}">${N("mdi:speaker-multiple")} Open Sonos controller</a>`}</section></main>`;
+	return `${V(e, "Media overview", "Whole-house audio and television control")}<main class="page-grid media-grid"><section class="glass rooms"><div class="card-title">Living room</div>${X(e, t.primary, "Surround speakers", "mdi:speaker-multiple")}${X(e, t.livingTv, "Living room TV", "mdi:television")}</section><section class="glass rooms"><div class="card-title">Private rooms</div>${X(e, t.bedroom, "Master bedroom", "mdi:bed-king-outline")}${X(e, t.study, "Study", "mdi:bookshelf")}</section><section class="glass now"><div class="card-title">Now playing</div><div class="album">${P("mdi:music-note")}</div><h2>${b(I(r, "media_title", "No media playing"))}</h2><span>${b(I(r, "media_artist", "Select a source to start listening"))}</span>${i === void 0 ? "" : `<div class="transport"><button class="media-action" data-action="media" data-entity="${i}" data-command="media_previous_track" aria-label="Previous track" ${a}>${P("mdi:skip-previous")}</button><button class="media-action" data-action="media" data-entity="${i}" data-command="media_play_pause" aria-label="Play or pause" ${a}>${P("mdi:play")}</button><button class="media-action" data-action="media" data-entity="${i}" data-command="media_next_track" aria-label="Next track" ${a}>${P("mdi:skip-next")}</button></div>`}</section><section class="glass rooms"><div class="card-title">Whole home</div>${X(e, t.family, "Family lounge", "mdi:sofa-outline")}${X(e, t.kitchen, "Kitchen", "mdi:silverware-fork-knife")}${X(e, t.dining, "Dining", "mdi:table-furniture")}</section><section class="glass quick"><div class="card-title">Quick controls</div>${i === void 0 ? "" : `<button class="media-action" data-action="media" data-entity="${i}" data-command="media_pause" ${a}>${P("mdi:pause")} Pause all</button>`}${e.config.sonoraUrl === void 0 ? "<p>Sonos controller URL not configured.</p>" : `<a href="${b(e.config.sonoraUrl)}">${P("mdi:speaker-multiple")} Open Sonos controller</a>`}</section></main>`;
 }
 function ue(e) {
-	return `${B(e, "Sonos controller", "Stable whole-house audio handoff")}<main class="glass empty"><div>${N("mdi:speaker-multiple")}<h2>Whole-house audio</h2>${e.config.sonoraUrl === void 0 ? "<p>Add the HTTPS Sonora URL in the visual editor.</p>" : `<p>The controller opens directly to avoid nested-theme reload loops in Fully Kiosk.</p><a href="${b(e.config.sonoraUrl)}">Open Sonos controller</a>`}</div></main>`;
+	return `${V(e, "Sonos controller", "Stable whole-house audio handoff")}<main class="glass empty"><div>${P("mdi:speaker-multiple")}<h2>Whole-house audio</h2>${e.config.sonoraUrl === void 0 ? "<p>Add the HTTPS Sonora URL in the visual editor.</p>" : `<p>The controller opens directly to avoid nested-theme reload loops in Fully Kiosk.</p><a href="${b(e.config.sonoraUrl)}">Open Sonos controller</a>`}</div></main>`;
 }
-function X(e, t, n, r, i = "") {
-	let a = L(e, r), o = a !== "Unavailable";
-	return `<section class="glass diagnostic ${o ? "available" : "unavailable"}"><span class="round">${N(t)}</span><div><small>${b(n)}</small><strong>${b(a)}${o ? b(i) : ""}</strong><code>${b(r ?? "Not configured")}</code></div></section>`;
+function de(e, t, n, r, i = "") {
+	let a = R(e, r), o = a !== "Unavailable";
+	return `<section class="glass diagnostic ${o ? "available" : "unavailable"}"><span class="round">${P(t)}</span><div><small>${b(n)}</small><strong>${b(a)}${o ? b(i) : ""}</strong><code>${b(r ?? "Not configured")}</code></div></section>`;
 }
-function de(e) {
+function Z(e) {
 	let t = e.config.entities.diagnostics, n = [
 		[
 			"mdi:battery",
@@ -1006,24 +1006,23 @@ function de(e) {
 			t.poePower,
 			" W"
 		]
-	], r = n.filter(([, , t]) => L(e, t) === "Unavailable").length;
-	return `${B(e, "System overview", r === 0 ? "Tablet and PoE telemetry online" : `${r} diagnostics unavailable`)}<main class="page-grid diagnostics-grid">${n.map(([t, n, r, i]) => X(e, t, n, r, i)).join("")}<section class="glass diagnostic-note"><div class="card-title">Commissioning status</div><p>This view is intentionally read-only. Charging automation and PoE switching remain controlled by Home Assistant, not dashboard taps.</p></section></main>`;
+	], r = n.filter(([, , t]) => R(e, t) === "Unavailable").length;
+	return `${V(e, "System overview", r === 0 ? "Tablet and PoE telemetry online" : `${r} diagnostics unavailable`)}<main class="page-grid diagnostics-grid">${n.map(([t, n, r, i]) => de(e, t, n, r, i)).join("")}<section class="glass diagnostic-note"><div class="card-title">Commissioning status</div><p>This view is intentionally read-only. Charging automation and PoE switching remain controlled by Home Assistant, not dashboard taps.</p></section></main>`;
 }
 function fe(e) {
 	switch (e.config.view) {
-		case "home": return te(e);
-		case "security": return ie(e);
-		case "energy": return J(e);
+		case "home": return ee(e);
+		case "security": return re(e);
+		case "energy": return ie(e);
 		case "climate": return oe(e);
 		case "lights": return ce(e);
 		case "media": return le(e);
 		case "sonos": return ue(e);
-		case "diagnostics": return de(e);
+		case "diagnostics": return Z(e);
 		default: return e.config.view;
 	}
 }
 // src/index.ts
-var Z = "0.1.0-alpha.1";
 function pe(e) {
 	return e.replaceAll("\\", "\\\\").replaceAll("\"", "\\\"").replaceAll("\n", "").replaceAll("\r", "");
 }
@@ -1179,5 +1178,5 @@ customElements.get("h2dc-dashboard-preview") || customElements.define("h2dc-dash
 	description: "Configurable wall-tablet dashboard for Home Assistant",
 	preview: !1,
 	documentationURL: "https://github.com/flexyneat/h2dc-dashboard"
-}), console.info(`H2DC Dashboard ${Z} loaded`);
-export { $ as H2DCDashboardCard, Z as H2DC_PACKAGE_VERSION, w as TOKENS, _e as createH2DCConfigElement, j as derivePowerFlow, _ as dispatchDashboardAction, b as escapeHtml, M as formatPower, E as lightCapabilities, v as readEntity, y as readNumericState };
+}), console.info(`H2DC Dashboard ${E} loaded`);
+export { $ as H2DCDashboardCard, E as H2DC_PACKAGE_VERSION, w as TOKENS, _e as createH2DCConfigElement, M as derivePowerFlow, _ as dispatchDashboardAction, b as escapeHtml, N as formatPower, D as lightCapabilities, v as readEntity, y as readNumericState };
