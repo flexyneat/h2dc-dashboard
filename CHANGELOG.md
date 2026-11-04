@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — Public repository documentation
+
+- Rebuilt the repository README as a complete HACS-facing product and installation guide.
+- Added the eight approved native-resolution tablet captures as a browsable project gallery.
+- Documented configuration boundaries, optional integrations, security posture, development verification, release integrity, and upgrade-safe customization.
+
 ## 1.0.1 — 2026-11-04
 
 - Added the Home Assistant and HACS repository topics required by the official HACS inclusion validator.
