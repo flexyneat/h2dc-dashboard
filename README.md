@@ -2,7 +2,9 @@
 
 H2DC is a configurable Home Assistant wall-dashboard card designed for 16:10 kiosk displays. This repository is the upgrade-safe successor to a commissioned local card.
 
-> Status: HACS-compatible stable release. The complete eight-route dashboard passed isolated 1920×1200 tablet acceptance before its authorized production cutover.
+![Illustrated preview of the H2DC Home Assistant wall dashboard](docs/assets/h2dc-dashboard-preview.svg)
+
+> Status: HACS-compatible stable release. The complete eight-route dashboard passed isolated 1920×1200 tablet acceptance before its authorized production cutover. The preview above is an entity-neutral illustration; live content is supplied by each Home Assistant installation.
 
 ## Design contract
 

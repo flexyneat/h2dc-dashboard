@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title description">
+  <title id="title">H2DC wall dashboard preview</title>
+  <desc id="description">An entity-neutral illustration of the H2DC Home Assistant dashboard with time, weather, energy, climate, media, security and lighting regions.</desc>
+  <rect width="1600" height="900" fill="#131715"/>
+  <rect x="52" y="48" width="1496" height="804" rx="40" fill="#1d221f" stroke="#667068" stroke-width="2"/>
+  <text x="100" y="116" fill="#f2f5f2" font-family="system-ui, sans-serif" font-size="46" font-weight="700">H2DC</text>
+  <rect x="390" y="74" width="1040" height="70" rx="35" fill="#292f2b" stroke="#677168"/>
+  <g fill="#d9dfda" font-family="system-ui, sans-serif" font-size="22" text-anchor="middle">
+    <text x="485" y="117">Home</text><text x="650" y="117">Security</text><text x="815" y="117">Energy</text><text x="980" y="117">Climate</text><text x="1145" y="117">Media</text><text x="1310" y="117">System</text>
+  </g>
+  <g fill="#252b27" stroke="#6b756d" stroke-width="2">
+    <rect x="92" y="190" width="330" height="250" rx="28"/>
+    <rect x="92" y="468" width="330" height="250" rx="28"/>
+    <rect x="450" y="190" width="650" height="528" rx="28"/>
+    <rect x="1128" y="190" width="380" height="160" rx="28"/>
+    <rect x="1128" y="378" width="380" height="160" rx="28"/>
+    <rect x="1128" y="566" width="380" height="152" rx="28"/>
+  </g>
+  <g fill="#f2f5f2" font-family="system-ui, sans-serif">
+    <text x="126" y="250" font-size="26">Local time</text><text x="126" y="345" font-size="76" font-weight="650">10:04 AM</text>
+    <text x="126" y="530" font-size="26">Outside</text><text x="126" y="620" font-size="68" font-weight="650">27 °C</text><text x="126" y="674" font-size="28" fill="#b7c0b9">Partly cloudy</text>
+    <text x="490" y="246" font-size="30" font-weight="650">Home energy</text><text x="1168" y="246" font-size="28" font-weight="650">Climate</text><text x="1168" y="434" font-size="28" font-weight="650">Now playing</text><text x="1168" y="622" font-size="28" font-weight="650">Nearby controls</text>
+  </g>
+  <circle cx="775" cy="382" r="78" fill="none" stroke="#f3bc34" stroke-width="8"/>
+  <path d="M775 460V545M775 545H600V610M775 545V610M775 545H950V610" fill="none" stroke="#f3bc34" stroke-width="7" stroke-linecap="round"/>
+  <g fill="#f2f5f2" font-family="system-ui, sans-serif" text-anchor="middle"><text x="775" y="392" font-size="34">HOME</text><text x="600" y="662" font-size="24">Solar</text><text x="775" y="662" font-size="24">Battery</text><text x="950" y="662" font-size="24">Grid</text></g>
+  <g fill="#f3bc34"><circle cx="600" cy="610" r="31"/><circle cx="775" cy="610" r="31"/></g><circle cx="950" cy="610" r="31" fill="#252b27" stroke="#8da39a" stroke-width="3"/>
+  <g fill="#b7c0b9" font-family="system-ui, sans-serif" font-size="24"><text x="1168" y="302">Living room · Cool</text><text x="1168" y="490">Album artwork when available</text><text x="1168" y="674">Lights · Scenes · Switches</text></g>
+  <text x="800" y="806" fill="#9ba69f" font-family="system-ui, sans-serif" font-size="20" text-anchor="middle">Entity-neutral product illustration · live values come from Home Assistant</text>
+</svg>

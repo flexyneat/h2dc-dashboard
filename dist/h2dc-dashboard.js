@@ -2160,7 +2160,7 @@ header { position: relative; min-height: 12rem; }
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
   .flow-arrow { display: none; }
 }
-`, We = "1.0.0";
+`, We = "1.0.1";
 // src/contextual-home.ts
 function Ge(e, t) {
 	let n = e.rooms.flatMap((e) => e.occupancy);

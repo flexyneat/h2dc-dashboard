@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 — 2026-11-04
+
+- Added the Home Assistant and HACS repository topics required by the official HACS inclusion validator.
+- Added an entity-neutral product illustration to the README for the HACS repository-image requirement.
+- Preserved the verified `1.0.0` runtime artifact without changing dashboard behavior.
+
 ## 1.0.0 — 2026-11-04
 
 - Promoted the physically accepted eight-route H2DC dashboard from its isolated preview to the stable HACS production package.

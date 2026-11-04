@@ -37,4 +37,4 @@ jobs:
       - name: Publish immutable release assets
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${{ github.ref_name }}" dist/h2dc-dashboard.js dist/SHA256SUMS --verify-tag --notes-file docs/RELEASE_NOTES_1.0.0.md
+        run: gh release create "${{ github.ref_name }}" dist/h2dc-dashboard.js dist/SHA256SUMS --verify-tag --notes-file docs/RELEASE_NOTES.md
