@@ -66,6 +66,24 @@ describe("dispatchDashboardAction", () => {
     expect(forged.callService).not.toHaveBeenCalled();
   });
 
+  it("sends a validated alarm code only at the disarm service boundary", async () => {
+    const harness = serviceHarness();
+    await dispatchDashboardAction(harness.hass, { type: "alarm_disarm", entityId: "alarm_control_panel.house", code: "1234" });
+    expect(harness.callService).toHaveBeenCalledWith("alarm_control_panel", "alarm_disarm", { entity_id: "alarm_control_panel.house", code: "1234" });
+    await expect(dispatchDashboardAction(harness.hass, { type: "alarm_disarm", entityId: "alarm_control_panel.house", code: "12x4" })).rejects.toThrow("1 to 12 digits");
+  });
+
+  it("toggles only the exact configured PoE switch", async () => {
+    const harness = serviceHarness();
+    await dispatchDashboardAction(harness.hass, { type: "poe_toggle", entityId: "switch.rack_poe", allowedEntityId: "switch.rack_poe" });
+    expect(harness.callService).toHaveBeenCalledWith("switch", "toggle", { entity_id: "switch.rack_poe" });
+
+    const forged = serviceHarness();
+    await expect(dispatchDashboardAction(forged.hass, { type: "poe_toggle", entityId: "switch.other", allowedEntityId: "switch.rack_poe" })).rejects.toThrow("configured switch");
+    await expect(dispatchDashboardAction(forged.hass, { type: "poe_toggle", entityId: "light.kitchen", allowedEntityId: "light.kitchen" })).rejects.toThrow("configured switch");
+    expect(forged.callService).not.toHaveBeenCalled();
+  });
+
   it("rejects non-finite numeric payloads", async () => {
     const harness = serviceHarness();
     await expect(dispatchDashboardAction(harness.hass, { type: "set_light_brightness", entityId: "light.lounge", brightnessPercent: Number.NaN })).rejects.toThrow("finite value");

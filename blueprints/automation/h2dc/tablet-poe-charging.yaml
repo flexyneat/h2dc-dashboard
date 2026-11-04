@@ -1,0 +1,77 @@
+blueprint:
+  name: H2DC tablet PoE charging window
+  description: Enable a selected PoE switch below the low battery threshold and disable it above the high threshold.
+  domain: automation
+  author: H2DC
+  source_url: https://github.com/flexyneat/h2dc-dashboard/blob/main/blueprints/automation/h2dc/tablet-poe-charging.yaml
+  homeassistant:
+    min_version: "2024.10.0"
+  input:
+    devices:
+      name: Devices
+      icon: mdi:tablet-dashboard
+      input:
+        battery_sensor:
+          name: Tablet battery
+          selector:
+            entity:
+              domain: sensor
+              device_class: battery
+        poe_switch:
+          name: PoE port switch
+          description: Select only the switch powering this tablet.
+          selector:
+            target:
+              entity:
+                domain: switch
+    thresholds:
+      name: Charge window
+      icon: mdi:battery-sync-outline
+      collapsed: true
+      input:
+        charge_below:
+          name: Start charging below
+          default: 30
+          selector:
+            number:
+              min: 10
+              max: 49
+              step: 1
+              unit_of_measurement: "%"
+        stop_above:
+          name: Stop charging above
+          default: 80
+          selector:
+            number:
+              min: 50
+              max: 95
+              step: 1
+              unit_of_measurement: "%"
+
+mode: queued
+max: 2
+
+triggers:
+  - trigger: numeric_state
+    entity_id: !input battery_sensor
+    below: !input charge_below
+    id: charge
+  - trigger: numeric_state
+    entity_id: !input battery_sensor
+    above: !input stop_above
+    id: rest
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: charge
+        sequence:
+          - action: switch.turn_on
+            target: !input poe_switch
+      - conditions:
+          - condition: trigger
+            id: rest
+        sequence:
+          - action: switch.turn_off
+            target: !input poe_switch

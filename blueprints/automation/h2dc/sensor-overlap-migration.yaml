@@ -1,0 +1,74 @@
+blueprint:
+  name: H2DC safe sensor overlap migration
+  description: Keep legacy and replacement presence sensors active together; turn lights off only when both sensor sets are clear.
+  domain: automation
+  author: H2DC
+  source_url: https://github.com/flexyneat/h2dc-dashboard/blob/main/blueprints/automation/h2dc/sensor-overlap-migration.yaml
+  homeassistant:
+    min_version: "2024.10.0"
+  input:
+    sensors:
+      name: Migration sensors
+      icon: mdi:swap-horizontal
+      input:
+        legacy_sensors:
+          name: Legacy sensors
+          selector:
+            entity:
+              multiple: true
+              domain: binary_sensor
+        replacement_sensors:
+          name: Replacement sensors
+          selector:
+            entity:
+              multiple: true
+              domain: binary_sensor
+        controlled_lights:
+          name: Controlled lights
+          selector:
+            target:
+              entity:
+                domain: light
+    behavior:
+      name: Behaviour
+      icon: mdi:timer-outline
+      collapsed: true
+      input:
+        clear_seconds:
+          name: Combined all-clear delay
+          default: 180
+          selector:
+            number:
+              min: 0
+              max: 1800
+              step: 15
+              unit_of_measurement: seconds
+
+mode: restart
+max_exceeded: silent
+
+variables:
+  legacy: !input legacy_sensors
+  replacement: !input replacement_sensors
+
+triggers:
+  - trigger: state
+    entity_id: !input legacy_sensors
+  - trigger: state
+    entity_id: !input replacement_sensors
+
+actions:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ expand(legacy + replacement) | selectattr('state', 'eq', 'on') | list | count > 0 }}"
+        sequence:
+          - action: light.turn_on
+            target: !input controlled_lights
+    default:
+      - delay:
+          seconds: !input clear_seconds
+      - condition: template
+        value_template: "{{ expand(legacy + replacement) | rejectattr('state', 'eq', 'off') | list | count == 0 }}"
+      - action: light.turn_off
+        target: !input controlled_lights

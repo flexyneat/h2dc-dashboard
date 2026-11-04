@@ -8,10 +8,17 @@ interface H2DCTokens {
     readonly border: string;
     readonly accent: string;
     readonly focus: string;
+    readonly solar: string;
+    readonly grid: string;
+    readonly battery: string;
+    readonly load: string;
+    readonly disconnected: string;
   };
   readonly space: Readonly<Record<"1" | "2" | "3" | "4" | "6" | "8" | "12" | "16", string>>;
   readonly radius: Readonly<Record<"small" | "medium" | "large" | "round", string>>;
   readonly motion: Readonly<Record<"instant" | "micro" | "standard", string>>;
+  readonly typography: Readonly<Record<"micro" | "compact" | "pageSubheading" | "keypadTracking", string>>;
+  readonly readiness: Readonly<Record<"sonoraThemeSettle" | "sonoraThemeTimeout", number>>;
 }
 
 /** Shared H2DC visual tokens; component code consumes semantic names only. */
@@ -24,8 +31,15 @@ export const TOKENS = {
     border: "oklch(0.97 0.006 78 / 0.16)",
     accent: "oklch(0.79 0.15 82)",
     focus: "oklch(0.82 0.13 220)",
+    solar: "oklch(0.79 0.15 82)",
+    grid: "oklch(0.76 0.11 230)",
+    battery: "oklch(0.76 0.12 155)",
+    load: "oklch(0.82 0.13 55)",
+    disconnected: "oklch(0.7 0.18 25)",
   },
   space: { "1": "0.25rem", "2": "0.5rem", "3": "0.75rem", "4": "1rem", "6": "1.5rem", "8": "2rem", "12": "3rem", "16": "4rem" },
   radius: { small: "0.5rem", medium: "0.75rem", large: "1.5rem", round: "999rem" },
   motion: { instant: "100ms", micro: "200ms", standard: "320ms" },
+  typography: { micro: "0.75rem", compact: "0.78rem", pageSubheading: "clamp(1.25rem, 1.4vw + 0.5rem, 1.75rem)", keypadTracking: "0.2em" },
+  readiness: { sonoraThemeSettle: 2200, sonoraThemeTimeout: 5000 },
 } as const satisfies H2DCTokens;

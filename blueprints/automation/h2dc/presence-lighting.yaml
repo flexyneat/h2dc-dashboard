@@ -1,0 +1,81 @@
+blueprint:
+  name: H2DC multi-sensor presence lighting
+  description: Turn selected lights on when any selected sensor is active and off only after every sensor remains clear.
+  domain: automation
+  author: H2DC
+  source_url: https://github.com/flexyneat/h2dc-dashboard/blob/main/blueprints/automation/h2dc/presence-lighting.yaml
+  homeassistant:
+    min_version: "2024.10.0"
+  input:
+    devices:
+      name: Devices
+      icon: mdi:motion-sensor
+      input:
+        presence_sensors:
+          name: Presence sensors
+          selector:
+            entity:
+              multiple: true
+              filter:
+                - domain: binary_sensor
+                  device_class: motion
+                - domain: binary_sensor
+                  device_class: occupancy
+        controlled_lights:
+          name: Controlled lights
+          selector:
+            target:
+              entity:
+                domain: light
+    behavior:
+      name: Behaviour
+      icon: mdi:tune
+      collapsed: true
+      input:
+        clear_seconds:
+          name: All-clear delay
+          default: 180
+          selector:
+            number:
+              min: 0
+              max: 1800
+              step: 15
+              unit_of_measurement: seconds
+        brightness_pct:
+          name: Brightness
+          default: 100
+          selector:
+            number:
+              min: 1
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+
+mode: restart
+max_exceeded: silent
+
+variables:
+  sensors: !input presence_sensors
+  brightness: !input brightness_pct
+
+triggers:
+  - trigger: state
+    entity_id: !input presence_sensors
+
+actions:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ expand(sensors) | selectattr('state', 'eq', 'on') | list | count > 0 }}"
+        sequence:
+          - action: light.turn_on
+            target: !input controlled_lights
+            data:
+              brightness_pct: "{{ brightness }}"
+    default:
+      - delay:
+          seconds: !input clear_seconds
+      - condition: template
+        value_template: "{{ expand(sensors) | rejectattr('state', 'eq', 'off') | list | count == 0 }}"
+      - action: light.turn_off
+        target: !input controlled_lights

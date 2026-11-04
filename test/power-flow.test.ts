@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseConfig } from "../src/config-schema";
 import type { H2DCConfig } from "../src/domain";
 import type { HassEntity, HomeAssistant } from "../src/home-assistant";
-import { derivePowerFlow, formatPower } from "../src/power-flow";
+import { deriveGridAvailability, derivePowerFlow, formatPower } from "../src/power-flow";
 
 /** Builds a validated portable configuration for topology tests. */
 function testConfig(overrides: Readonly<Record<string, unknown>> = {}): H2DCConfig {
@@ -16,6 +16,7 @@ function testConfig(overrides: Readonly<Record<string, unknown>> = {}): H2DCConf
       room_temperature: "sensor.room_temperature",
       energy: {
         freshness: "binary_sensor.inverter_fresh",
+        grid_connected: "binary_sensor.grid_relay",
         solar: "sensor.solar",
         battery_soc: "sensor.battery_soc",
         battery: "sensor.battery",
@@ -39,6 +40,7 @@ describe("derivePowerFlow", () => {
   it("derives commissioned import/discharge polarity", () => {
     const flow = derivePowerFlow(hassWith({
       "binary_sensor.inverter_fresh": "on",
+      "binary_sensor.grid_relay": "on",
       "sensor.solar": "2280",
       "sensor.battery_soc": "37",
       "sensor.battery": "-400",
@@ -52,6 +54,7 @@ describe("derivePowerFlow", () => {
   it("honours inverted installation conventions", () => {
     const flow = derivePowerFlow(hassWith({
       "binary_sensor.inverter_fresh": "on",
+      "binary_sensor.grid_relay": "on",
       "sensor.solar": "0",
       "sensor.battery_soc": "50",
       "sensor.battery": "500",
@@ -64,6 +67,7 @@ describe("derivePowerFlow", () => {
   it("stops animation when freshness is stale", () => {
     const flow = derivePowerFlow(hassWith({
       "binary_sensor.inverter_fresh": "off",
+      "binary_sensor.grid_relay": "on",
       "sensor.solar": "2000",
       "sensor.battery_soc": "50",
       "sensor.battery": "500",
@@ -76,6 +80,7 @@ describe("derivePowerFlow", () => {
   it("preserves unavailable telemetry instead of rendering zero", () => {
     const flow = derivePowerFlow(hassWith({
       "binary_sensor.inverter_fresh": "on",
+      "binary_sensor.grid_relay": "on",
       "sensor.solar": "unavailable",
       "sensor.battery_soc": "unknown",
       "sensor.battery": "0",
@@ -89,5 +94,35 @@ describe("derivePowerFlow", () => {
   it("switches between W and kW at exactly 1000 W", () => {
     expect(formatPower({ status: "available", value: 999 })).toBe("999 W");
     expect(formatPower({ status: "available", value: 1000 })).toBe("1 kW");
+    expect(formatPower({ status: "available", value: 1234.56 })).toBe("1.23 kW");
+    expect(formatPower({ status: "available", value: -920.4 }, false)).toBe("-920.40 W");
+  });
+
+  it("routes battery discharge toward the inverter and home", () => {
+    const flow = derivePowerFlow(hassWith({
+      "binary_sensor.inverter_fresh": "on",
+      "binary_sensor.grid_relay": "off",
+      "sensor.solar": "0",
+      "sensor.battery_soc": "47",
+      "sensor.battery": "1580",
+      "sensor.grid": "1200",
+      "sensor.load": "1450",
+    }), testConfig());
+    expect(flow).toMatchObject({ battery: "source", grid: "idle", gridAvailability: "unavailable", load: "sink" });
+    expect(flow.summary).toBe("battery → home");
+  });
+
+  it("uses only the dedicated relay entity for grid availability", () => {
+    const unavailable = deriveGridAvailability(hassWith({ "binary_sensor.grid_relay": "off", "sensor.grid_voltage": "242" }), testConfig().entities.energy);
+    const unknown = deriveGridAvailability(hassWith({ "binary_sensor.grid_relay": "unavailable", "sensor.grid_voltage": "242" }), testConfig().entities.energy);
+    expect(unavailable).toBe("unavailable");
+    expect(unknown).toBe("unknown");
+  });
+
+  it("accepts the commissioned Modbus relay register's numeric states", () => {
+    const connected = deriveGridAvailability(hassWith({ "binary_sensor.grid_relay": "1.0" }), testConfig().entities.energy);
+    const disconnected = deriveGridAvailability(hassWith({ "binary_sensor.grid_relay": "0.0" }), testConfig().entities.energy);
+    expect(connected).toBe("available");
+    expect(disconnected).toBe("unavailable");
   });
 });

@@ -8,7 +8,9 @@ export type DashboardAction =
   | { readonly type: "set_climate_mode"; readonly entityId: string; readonly mode: "cool" | "off" }
   | { readonly type: "set_light_brightness"; readonly entityId: string; readonly brightnessPercent: number }
   | { readonly type: "media"; readonly entityId: string; readonly command: "media_play_pause" | "media_pause" | "media_previous_track" | "media_next_track" }
-  | { readonly type: "alarm"; readonly entityId: string; readonly command: "alarm_arm_home" | "alarm_arm_away" | "alarm_arm_night" };
+  | { readonly type: "alarm"; readonly entityId: string; readonly command: "alarm_arm_home" | "alarm_arm_away" | "alarm_arm_night" }
+  | { readonly type: "alarm_disarm"; readonly entityId: string; readonly code: string }
+  | { readonly type: "poe_toggle"; readonly entityId: string; readonly allowedEntityId: string };
 
 /** Constrains a numeric service value to a safe inclusive range. */
 function bounded(value: number, minimum: number, maximum: number): number {
@@ -56,6 +58,16 @@ export async function dispatchDashboardAction(hass: HomeAssistant, input: unknow
       const command = commands.find((candidate) => candidate === input.command);
       if (command === undefined) throw new Error("Unsupported alarm command");
       return hass.callService("alarm_control_panel", command, { entity_id: entityId });
+    }
+    case "alarm_disarm": {
+      if (!isEntityId(entityId, "alarm_control_panel")) throw new Error("Alarm disarm requires an alarm_control_panel entity");
+      if (typeof input.code !== "string" || !/^\d{1,12}$/u.test(input.code)) throw new Error("Alarm code must contain 1 to 12 digits");
+      // Keep the credential in the service boundary only; it is never rendered or logged.
+      return hass.callService("alarm_control_panel", "alarm_disarm", { entity_id: entityId, code: input.code });
+    }
+    case "poe_toggle": {
+      if (!isEntityId(input.allowedEntityId, "switch") || entityId !== input.allowedEntityId) throw new Error("PoE action requires the configured switch entity");
+      return hass.callService("switch", "toggle", { entity_id: entityId });
     }
     default:
       throw new Error("Unsupported dashboard action");

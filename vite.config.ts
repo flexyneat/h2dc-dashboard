@@ -12,7 +12,7 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: false,
     lib: {
-      entry: resolve(fileURLToPath(new URL(".", import.meta.url)), "src/index.ts"),
+      entry: resolve(fileURLToPath(new URL(".", import.meta.url)), "src/public-entry.ts"),
       formats: ["es"],
       fileName: () => "h2dc-dashboard.js",
     },

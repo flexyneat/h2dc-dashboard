@@ -1,0 +1,40 @@
+blueprint:
+  name: H2DC kiosk wake on presence
+  description: Run an installation-defined Fully Kiosk wake action when any selected presence sensor becomes active.
+  domain: automation
+  author: H2DC
+  source_url: https://github.com/flexyneat/h2dc-dashboard/blob/main/blueprints/automation/h2dc/kiosk-wake.yaml
+  homeassistant:
+    min_version: "2024.10.0"
+  input:
+    presence:
+      name: Presence
+      icon: mdi:motion-sensor
+      input:
+        presence_sensors:
+          name: Presence sensors
+          description: Motion or occupancy entities that should wake the kiosk.
+          selector:
+            entity:
+              multiple: true
+              filter:
+                - domain: binary_sensor
+                  device_class: motion
+                - domain: binary_sensor
+                  device_class: occupancy
+        wake_actions:
+          name: Wake action
+          description: Select the Fully Kiosk screen-on action for this installation.
+          selector:
+            action: {}
+
+mode: single
+max_exceeded: silent
+
+triggers:
+  - trigger: state
+    entity_id: !input presence_sensors
+    from: "off"
+    to: "on"
+
+actions: !input wake_actions

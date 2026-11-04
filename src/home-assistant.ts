@@ -16,7 +16,12 @@ export type HassServiceData = Readonly<Record<string, string | number | boolean>
 /** Minimal Home Assistant frontend API required by H2DC. */
 export interface HomeAssistant {
   readonly states: Readonly<Record<string, HassEntity | undefined>>;
+  readonly config?: Readonly<{ readonly time_zone?: string }>;
+  readonly connection?: unknown;
+  readonly user?: unknown;
   callService(domain: string, service: string, data: HassServiceData): Promise<unknown>;
+  callApi?(method: string, path: string, parameters?: unknown): Promise<unknown>;
+  callWS?(message: Readonly<Record<string, unknown>>): Promise<unknown>;
 }
 
 /** Explicit state availability prevents missing telemetry from becoming a fake zero. */

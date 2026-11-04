@@ -1,0 +1,21 @@
+name: Validate HACS repository
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  validate-hacs:
+    name: HACS plugin validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate dashboard repository
+        # Pin the third-party action to an audited commit instead of mutable @main.
+        uses: hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa
+        with:
+          category: plugin
