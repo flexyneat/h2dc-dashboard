@@ -2451,24 +2451,36 @@ function lt(e) {
 	let t = e.config.entities, n = D(e.hass, t.weather), r = n.status === "available" ? n.entity : void 0, i = t.roomTemperatures.map((t) => ct(e, t.entity, t.room, t.icon)).join(""), a = r?.state ?? "unavailable", o = a.replace(/[^a-z-]/gu, "") || "unavailable", s = r === void 0 ? "—" : j(r, "temperature");
 	return `${K(e, "Climate overview", `Air conditioning ${U(e, t.climate, "off")} · Living room ${W(e, t.roomTemperature)} degrees Celsius`)}<main class="page-grid climate-grid"><div class="temps">${i || "<section class=\"glass empty\"><p>No room temperature sensors configured.</p></section>"}</div><section class="glass thermostat"><div class="card-title">Air conditioning</div><div class="climate-reading"><strong>${Y(W(e, t.roomTemperature))}</strong><small>Living room</small></div>${et(e)}</section><div class="climate-right"><section class="glass outside weather-surface weather-${k(o)}" data-weather-condition="${k(o)}">${B(Qe(a))}<div><small>Outside</small><strong>${Y(s)}</strong><span>${k(a.replaceAll("_", " "))}</span></div></section></div></main>`;
 }
-function ut(e, t, n, r) {
-	let i = n.replace(/\s+/gu, " ").trim(), a = r?.replace(/\s+/gu, " ").trim(), o = (a !== void 0 && a !== "" && i.toLocaleLowerCase().endsWith(` ${a.toLocaleLowerCase()}`) ? i.slice(0, -(a.length + 1)).trim() : i).replace(/\s+(?:lights?|switches?|controls?)$/iu, "").trim() || i;
-	if (a !== void 0 && a !== "") return {
-		room: o,
-		name: a
+function ut(e, t, n, r, i) {
+	let a = n.replace(/\s+/gu, " ").trim(), o = i?.replace(/\s+/gu, " ").trim(), s = (o !== void 0 && o !== "" && a.toLocaleLowerCase().endsWith(` ${o.toLocaleLowerCase()}`) ? a.slice(0, -(o.length + 1)).trim() : a).replace(/\s+(?:lights?|switches?|controls?)$/iu, "").trim() || a;
+	if (o !== void 0 && o !== "") return {
+		room: s,
+		name: o
 	};
-	let s = V(e, "friendly_name", t).replace(/\s+/gu, " ").trim(), c = `${o} `;
+	let c = V(e, "friendly_name", "").replace(/\s+/gu, " ").trim();
+	if (c === "" || c === t) return {
+		room: s,
+		name: r
+	};
+	let l = `${s} `, u = c.toLocaleLowerCase().startsWith(l.toLocaleLowerCase()) ? c.slice(l.length).trim() : c;
 	return {
-		room: o,
-		name: (s.toLocaleLowerCase().startsWith(c.toLocaleLowerCase()) ? s.slice(c.length).trim() : s) || s
+		room: s,
+		name: u !== "" && !(/* @__PURE__ */ new Set([
+			"light",
+			"lights",
+			"switch",
+			"switches",
+			"control",
+			"controls"
+		])).has(u.toLocaleLowerCase()) ? u : c
 	};
 }
 function dt(e, t, n, r, i) {
-	let a = D(e.hass, t), o = a.status === "available" ? a.entity : void 0, s = qe(o), c = o?.state ?? "unavailable", l = c === "on" ? "on" : c === "off" ? "off" : "unavailable", u = H(o, "brightness", c === "on" ? 255 : 0), d = Math.round(u / 255 * 100), f = ut(o, t, n, i);
+	let a = D(e.hass, t), o = a.status === "available" ? a.entity : void 0, s = qe(o), c = o?.state ?? "unavailable", l = c === "on" ? "on" : c === "off" ? "off" : "unavailable", u = H(o, "brightness", c === "on" ? 255 : 0), d = Math.round(u / 255 * 100), f = ut(o, t, n, "Light", i);
 	return `<section class="glass light-card ${l}"><button class="light-card-surface" data-action="toggle" data-entity="${k(t)}" aria-label="Toggle ${k(f.name)}" aria-pressed="${c === "on"}" ${s.available ? "" : "disabled"}><span class="light-heading"><span class="round">${B(r)}</span><span><small>${k(f.room)}</small><strong>${k(f.name)}</strong></span><span class="light-toggle-icon">${B(c === "on" ? "mdi:lightbulb-on" : "mdi:lightbulb-outline")}</span></span><span class="light-state"><span>${k(c)}</span>${s.dimmable ? `<b>${A(d)}%</b>` : ""}</span></button>${s.dimmable ? `<input type="range" min="1" max="100" value="${Math.max(1, d)}" data-action="brightness" data-entity="${k(t)}" aria-label="${k(f.name)} brightness" ${s.available ? "" : "disabled"}>` : ""}</section>`;
 }
 function ft(e, t, n, r, i) {
-	let a = D(e.hass, t), o = a.status === "available" ? a.entity : void 0, s = o?.state ?? "unavailable", c = s === "on" ? "on" : s === "off" ? "off" : "unavailable", l = ut(o, t, n, i);
+	let a = D(e.hass, t), o = a.status === "available" ? a.entity : void 0, s = o?.state ?? "unavailable", c = s === "on" ? "on" : s === "off" ? "off" : "unavailable", l = ut(o, t, n, "Switch", i);
 	return `<section class="glass switch-card ${c}"><button class="switch-card-surface" data-action="toggle" data-entity="${k(t)}" aria-label="Toggle ${k(l.name)}" aria-pressed="${s === "on"}" ${o === void 0 ? "disabled" : ""}><span class="light-heading"><span class="round">${B(r)}</span><span><small>${k(l.room)}</small><strong>${k(l.name)}</strong></span><span class="light-toggle-icon">${B(s === "on" ? "mdi:toggle-switch" : "mdi:toggle-switch-off-outline")}</span></span><span class="light-state"><span>${k(s)}</span><b>${s === "on" ? "On" : s === "off" ? "Off" : "—"}</b></span></button></section>`;
 }
 function pt(e) {

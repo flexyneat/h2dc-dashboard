@@ -307,6 +307,67 @@ describe("renderView", () => {
     expect(output).not.toContain("<strong>Living room Recessed Lights</strong>");
   });
 
+  it("preserves a meaningful generic friendly name and never exposes an entity ID fallback", () => {
+    const fixture = hassFixture();
+    const configured = configFor("lights");
+    const config: H2DCConfig = {
+      ...configured,
+      entities: {
+        ...configured.entities,
+        lights: [
+          { entity: "light.stairwell", room: "Stairwell", icon: "mdi:stairs" },
+          { entity: "light.missing", room: "Utility", icon: "mdi:lightbulb-outline" },
+        ],
+      },
+    };
+    const hass: HomeAssistant = {
+      ...fixture.hass,
+      states: {
+        ...fixture.hass.states,
+        "light.stairwell": { state: "off", attributes: { friendly_name: "Stairwell Lights" } } satisfies HassEntity,
+      },
+    };
+    const output = renderView({ config, hass, now: new Date(), reducedMotion: true });
+
+    expect(output).toContain("<strong>Stairwell Lights</strong>");
+    expect(output).toContain("<strong>Light</strong>");
+    expect(output).not.toContain(">light.missing<");
+  });
+
+  it("keeps the grouped lounge lights and standalone lounge switch as separate cards", () => {
+    const fixture = hassFixture();
+    const configured = configFor("lights");
+    const config: H2DCConfig = {
+      ...configured,
+      entities: {
+        ...configured.entities,
+        lights: [{ entity: "light.lounge_lighting", room: "Family lounge", icon: "mdi:lightbulb-group", label: "Lounge Lights" }],
+        switches: [
+          { entity: "switch.light_one", room: "Ante-room", icon: "mdi:ceiling-light" },
+          { entity: "switch.light_two", room: "Ante-room", icon: "mdi:ceiling-light" },
+          { entity: "switch.light_three", room: "Ante-room", icon: "mdi:ceiling-light" },
+          { entity: "switch.light_four", room: "Exterior", icon: "mdi:string-lights" },
+          { entity: "switch.plug_2", room: "Family lounge", icon: "mdi:power-socket-uk", label: "Lounge Switch" },
+        ],
+      },
+    };
+    const hass: HomeAssistant = {
+      ...fixture.hass,
+      states: {
+        ...fixture.hass.states,
+        "light.lounge_lighting": { state: "off", attributes: { friendly_name: "Lounge Lights" } } satisfies HassEntity,
+        "switch.plug_2": { state: "off", attributes: { friendly_name: "Lounge Switch" } } satisfies HassEntity,
+      },
+    };
+    const output = renderView({ config, hass, now: new Date(), reducedMotion: true });
+    const switchesStart = output.indexOf('id="switches-heading"');
+
+    expect(output.indexOf('data-entity="light.lounge_lighting"')).toBeLessThan(switchesStart);
+    expect(output.indexOf('data-entity="switch.plug_2"')).toBeGreaterThan(switchesStart);
+    expect(output).toContain("<strong>Lounge Lights</strong>");
+    expect(output).toContain("<strong>Lounge Switch</strong>");
+  });
+
   it("renders household lights above household switches with independent state summaries", () => {
     const fixture = hassFixture();
     const hass: HomeAssistant = {

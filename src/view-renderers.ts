@@ -286,8 +286,8 @@ function renderClimate(context: RenderContext): string {
   return `${header(context, "Climate overview", `Air conditioning ${stateText(context, entities.climate, "off")} · Living room ${numericText(context, entities.roomTemperature)} degrees Celsius`)}<main class="page-grid climate-grid"><div class="temps">${temperatures || `<section class="glass empty"><p>No room temperature sensors configured.</p></section>`}</div><section class="glass thermostat"><div class="card-title">Air conditioning</div><div class="climate-reading"><strong>${celsius(numericText(context, entities.roomTemperature))}</strong><small>Living room</small></div>${coolingControl(context)}</section><div class="climate-right"><section class="glass outside weather-surface weather-${escapeHtml(conditionClass)}" data-weather-condition="${escapeHtml(conditionClass)}">${icon(weatherIcon(condition))}<div><small>Outside</small><strong>${celsius(outsideTemperature)}</strong><span>${escapeHtml(condition.replaceAll("_", " "))}</span></div></section></div></main>`;
 }
 
-/** Resolves concise, non-repeating household copy for light and switch cards. */
-function deviceCardCopy(entity: HassEntity | undefined, entityId: string, room: string, label?: string): { readonly room: string; readonly name: string } {
+/** Resolves concise, non-repeating household copy without exposing an entity ID. */
+function deviceCardCopy(entity: HassEntity | undefined, entityId: string, room: string, fallbackName: "Light" | "Switch", label?: string): { readonly room: string; readonly name: string } {
   const normalizedRoom = room.replace(/\s+/gu, " ").trim();
   const configuredName = label?.replace(/\s+/gu, " ").trim();
   const withoutConfiguredName = configuredName !== undefined && configuredName !== "" && normalizedRoom.toLocaleLowerCase().endsWith(` ${configuredName.toLocaleLowerCase()}`)
@@ -296,13 +296,18 @@ function deviceCardCopy(entity: HassEntity | undefined, entityId: string, room: 
   const conciseRoom = withoutConfiguredName.replace(/\s+(?:lights?|switches?|controls?)$/iu, "").trim() || normalizedRoom;
   if (configuredName !== undefined && configuredName !== "") return { room: conciseRoom, name: configuredName };
 
-  const friendlyName = stringAttribute(entity, "friendly_name", entityId).replace(/\s+/gu, " ").trim();
-  // Entity registries often prefix a useful control name with its room. Remove only that exact prefix.
+  const friendlyName = stringAttribute(entity, "friendly_name", "").replace(/\s+/gu, " ").trim();
+  // Never expose implementation identifiers when a configured entity is temporarily unavailable.
+  if (friendlyName === "" || friendlyName === entityId) return { room: conciseRoom, name: fallbackName };
+
+  // Remove a room prefix only when the remaining copy still identifies the device.
   const roomPrefix = `${conciseRoom} `;
-  const name = friendlyName.toLocaleLowerCase().startsWith(roomPrefix.toLocaleLowerCase())
+  const candidate = friendlyName.toLocaleLowerCase().startsWith(roomPrefix.toLocaleLowerCase())
     ? friendlyName.slice(roomPrefix.length).trim()
     : friendlyName;
-  return { room: conciseRoom, name: name || friendlyName };
+  const genericNames = new Set(["light", "lights", "switch", "switches", "control", "controls"]);
+  const name = candidate !== "" && !genericNames.has(candidate.toLocaleLowerCase()) ? candidate : friendlyName;
+  return { room: conciseRoom, name };
 }
 
 /** Renders one capability-aware light card. */
@@ -314,7 +319,7 @@ function lightCard(context: RenderContext, entityId: string, room: string, mdi: 
   const stateClass = state === "on" ? "on" : state === "off" ? "off" : "unavailable";
   const brightness = numericAttribute(entity, "brightness", state === "on" ? 255 : 0);
   const percent = Math.round((brightness / 255) * 100);
-  const copy = deviceCardCopy(entity, entityId, room, label);
+  const copy = deviceCardCopy(entity, entityId, room, "Light", label);
   return `<section class="glass light-card ${stateClass}"><button class="light-card-surface" data-action="toggle" data-entity="${escapeHtml(entityId)}" aria-label="Toggle ${escapeHtml(copy.name)}" aria-pressed="${state === "on"}" ${capabilities.available ? "" : "disabled"}><span class="light-heading"><span class="round">${icon(mdi)}</span><span><small>${escapeHtml(copy.room)}</small><strong>${escapeHtml(copy.name)}</strong></span><span class="light-toggle-icon">${icon(state === "on" ? "mdi:lightbulb-on" : "mdi:lightbulb-outline")}</span></span><span class="light-state"><span>${escapeHtml(state)}</span>${capabilities.dimmable ? `<b>${formatDecimal(percent)}%</b>` : ""}</span></button>${capabilities.dimmable ? `<input type="range" min="1" max="100" value="${Math.max(1, percent)}" data-action="brightness" data-entity="${escapeHtml(entityId)}" aria-label="${escapeHtml(copy.name)} brightness" ${capabilities.available ? "" : "disabled"}>` : ""}</section>`;
 }
 
@@ -324,7 +329,7 @@ function switchCard(context: RenderContext, entityId: string, room: string, mdi:
   const entity = reading.status === "available" ? reading.entity : undefined;
   const state = entity?.state ?? "unavailable";
   const stateClass = state === "on" ? "on" : state === "off" ? "off" : "unavailable";
-  const copy = deviceCardCopy(entity, entityId, room, label);
+  const copy = deviceCardCopy(entity, entityId, room, "Switch", label);
   return `<section class="glass switch-card ${stateClass}"><button class="switch-card-surface" data-action="toggle" data-entity="${escapeHtml(entityId)}" aria-label="Toggle ${escapeHtml(copy.name)}" aria-pressed="${state === "on"}" ${entity === undefined ? "disabled" : ""}><span class="light-heading"><span class="round">${icon(mdi)}</span><span><small>${escapeHtml(copy.room)}</small><strong>${escapeHtml(copy.name)}</strong></span><span class="light-toggle-icon">${icon(state === "on" ? "mdi:toggle-switch" : "mdi:toggle-switch-off-outline")}</span></span><span class="light-state"><span>${escapeHtml(state)}</span><b>${state === "on" ? "On" : state === "off" ? "Off" : "—"}</b></span></button></section>`;
 }
 

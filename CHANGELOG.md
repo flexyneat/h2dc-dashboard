@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Friendly-name consistency
+
+- Kept `Lounge Lights` as the grouped card for `light.lounge_lights` and `light.tv_console`, while retaining `Lounge Switch` as a standalone switch card.
+- Preserved meaningful friendly names such as `Stairwell Lights` instead of reducing them to generic copy.
+- Replaced raw entity-ID fallbacks with domain-safe `Light` or `Switch` copy when an entity is temporarily unavailable.
+- Added regressions for group/switch separation, friendly-name preservation, and entity-ID privacy.
+
 ## 1.1.0 — 2026-11-05
 
 - Made configured light and switch labels authoritative, removing repeated room or registry prefixes so the commissioned cards render exactly as `Recessed Lights`, `Accent Lights`, and `Lounge Lights`.
