@@ -5,6 +5,7 @@
 - Rebuilt the repository README as a complete HACS-facing product and installation guide.
 - Added the eight approved native-resolution tablet captures as a browsable project gallery.
 - Documented configuration boundaries, optional integrations, security posture, development verification, release integrity, and upgrade-safe customization.
+- Clarified that Sonora is optional, removed reverse-proxy language from the public README, and documented that all core H2DC views operate without Sonora.
 
 ## 1.0.1 — 2026-11-04
 

@@ -1,6 +1,6 @@
 # H2DC Dashboard
 
-An eight-view Home Assistant dashboard for wall-mounted 16:10 tablets. H2DC brings security, live energy flow, climate, lighting, media, Sonos, and kiosk diagnostics into one configurable card without embedding household entity IDs in the package.
+An eight-view Home Assistant dashboard for wall-mounted 16:10 tablets. H2DC brings security, live energy flow, climate, lighting, media, and kiosk diagnostics into one configurable card without embedding household entity IDs in the package. An optional Sonora view can be added by users who already run Sonora.
 
 [![Release](https://img.shields.io/github/v/release/flexyneat/h2dc-dashboard?display_name=tag&sort=semver)](https://github.com/flexyneat/h2dc-dashboard/releases/latest)
 [![HACS validation](https://github.com/flexyneat/h2dc-dashboard/actions/workflows/hacs.yml/badge.svg)](https://github.com/flexyneat/h2dc-dashboard/actions/workflows/hacs.yml)
@@ -19,7 +19,7 @@ An eight-view Home Assistant dashboard for wall-mounted 16:10 tablets. H2DC brin
 - **Climate:** room conditions, set-point controls, outdoor weather, and condition-aware imagery.
 - **Lights:** curated light and switch sections, capability-aware dimmers, and full-card touch targets.
 - **Media:** grouped Sonos and television endpoints with live metadata, transport controls, and album artwork when available.
-- **Sonos:** an optional embedded Sonora controller behind an explicitly configured reverse proxy.
+- **Sonos:** an optional embedded Sonora controller for installations that already use Sonora; omit this view when Sonora is not part of the home.
 - **System:** kiosk health, battery and charging state, network status, PoE control, and operator diagnostics.
 
 H2DC renders read-only state until the user deliberately interacts with a control. Runtime validation rejects malformed entity IDs, unsafe URLs, invalid numeric service data, and unsupported actions before Home Assistant receives a service call.
@@ -56,7 +56,8 @@ The gallery is captured directly from the commissioned tablet at its native **19
 - HACS with Dashboard repositories enabled, or manual Lovelace resource installation.
 - A modern browser or Android System WebView; Fully Kiosk Browser is recommended for wall tablets.
 - [PowerFlo](https://github.com/flexyneat/PowerFlo) 0.5.0 or a compatible later release only when Complete PowerFlo analysis is enabled.
-- An HTTPS Sonora endpoint with explicit frame and exact-origin CORS policies only when the Sonos view is enabled.
+
+Sonora is not required. Home, Media, and every other H2DC view work without it; the optional Sonos view can simply be left unconfigured.
 
 ## Install with HACS
 
@@ -112,7 +113,7 @@ presentation:
   kiosk_profile: wall_16_10
 ```
 
-The editor and schema support reusable rooms, per-view backgrounds, presentation density, House Pulse summaries, camera mappings, grouped media players, Sonora, kiosk diagnostics, PowerFlo telemetry, and installation-specific labels. Review the complete [configuration reference](docs/CONFIGURATION.md) rather than copying entity IDs from the screenshots.
+The editor and schema support reusable rooms, per-view backgrounds, presentation density, House Pulse summaries, camera mappings, grouped media players, optional Sonora integration, kiosk diagnostics, PowerFlo telemetry, and installation-specific labels. Review the complete [configuration reference](docs/CONFIGURATION.md) rather than copying entity IDs from the screenshots.
 
 ## Customize safely
 
@@ -122,7 +123,7 @@ The editor and schema support reusable rooms, per-view backgrounds, presentation
 | Energy | Entity mappings, polarity, flow threshold, PowerFlo options | H2DC does not send inverter commands. |
 | Cameras | Up to nine overview entities and dedicated medium-stream entities | Opening one camera starts only its selected stream. |
 | Lights | Up to eight curated lights and eight curated switches | Keep administrative, PoE, and camera-analysis switches out of household controls. |
-| Media | Named room groups and fallback players | Artwork is used only when supplied by the selected player or configured Sonora endpoint. |
+| Media | Named room groups and fallback players | Artwork uses Home Assistant media metadata first; Sonora is an optional fallback. |
 | Kiosk | Fully Kiosk entities, battery sensor, and tablet PoE switch | Wake and charging automation remain separate, opt-in commissioning tasks. |
 
 Optional automation blueprints cover presence lighting, sensor overlap migration, tablet charging windows, and kiosk wake. Every blueprint is selector-driven and contains no household entity IDs. See the [blueprint library](docs/BLUEPRINTS.md).
@@ -143,7 +144,7 @@ Key guarantees:
 - medium-stream camera policy for focused playback;
 - separate public and isolated-preview custom-element registrations.
 
-For reverse-proxy requirements and trust boundaries, use the [configuration guide](docs/CONFIGURATION.md) and [Security acceptance matrix](docs/SECURITY_PORT_ACCEPTANCE_MATRIX.md).
+For configuration boundaries and trust controls, use the [configuration guide](docs/CONFIGURATION.md) and [Security acceptance matrix](docs/SECURITY_PORT_ACCEPTANCE_MATRIX.md).
 
 ## Development
 
