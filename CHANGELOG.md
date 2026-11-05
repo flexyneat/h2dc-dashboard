@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0 — 2026-11-05
+
+- Made configured light and switch labels authoritative, removing repeated room or registry prefixes so the commissioned cards render exactly as `Recessed Lights`, `Accent Lights`, and `Lounge Lights`.
+- Promoted the first configured lighting-circuit switches into the Lights section while preserving their switch-domain service behavior and keeping utility switches below.
+- Added the commissioned Lounge Lights grouping and retained `TV Console` as the direct entity name outside the group.
+- Replaced the translucent amber active-card wash with an opaque semantic surface, white copy, and amber state accents for reliable legibility over photographic backgrounds.
+- Added regression coverage for concise labels, duplicate-prefix removal, lighting-switch placement, whole-card toggle behavior, and active-state contrast.
+- Verified strict TypeScript, 153 source tests with one intentional skip, both standalone bundles, three registration-isolation tests, and the deterministic Marketplace artifact.
+
 ## Unreleased — Public repository documentation
 
 - Rebuilt the repository README as a complete HACS-facing product and installation guide.

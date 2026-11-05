@@ -227,7 +227,8 @@ function parseLights(value: unknown, issues: string[], enforceCapacity = true): 
       issues.push(`entities.lights[${index}] must contain a light entity, room, and icon`);
       return [];
     }
-    return [{ entity: item.entity, room: item.room, icon: item.icon }];
+    const label = typeof item.label === "string" && item.label.trim() !== "" ? item.label.trim() : undefined;
+    return [{ entity: item.entity, room: item.room, icon: item.icon, ...(label === undefined ? {} : { label }) }];
   });
 }
 
@@ -247,7 +248,8 @@ function parseSwitches(value: unknown, issues: string[], enforceCapacity = true)
       issues.push(`entities.switches[${index}] must contain a switch entity, room, and icon`);
       return [];
     }
-    return [{ entity: item.entity, room: item.room, icon: item.icon }];
+    const label = typeof item.label === "string" && item.label.trim() !== "" ? item.label.trim() : undefined;
+    return [{ entity: item.entity, room: item.room, icon: item.icon, ...(label === undefined ? {} : { label }) }];
   });
 }
 

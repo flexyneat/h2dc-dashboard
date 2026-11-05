@@ -286,8 +286,27 @@ function renderClimate(context: RenderContext): string {
   return `${header(context, "Climate overview", `Air conditioning ${stateText(context, entities.climate, "off")} · Living room ${numericText(context, entities.roomTemperature)} degrees Celsius`)}<main class="page-grid climate-grid"><div class="temps">${temperatures || `<section class="glass empty"><p>No room temperature sensors configured.</p></section>`}</div><section class="glass thermostat"><div class="card-title">Air conditioning</div><div class="climate-reading"><strong>${celsius(numericText(context, entities.roomTemperature))}</strong><small>Living room</small></div>${coolingControl(context)}</section><div class="climate-right"><section class="glass outside weather-surface weather-${escapeHtml(conditionClass)}" data-weather-condition="${escapeHtml(conditionClass)}">${icon(weatherIcon(condition))}<div><small>Outside</small><strong>${celsius(outsideTemperature)}</strong><span>${escapeHtml(condition.replaceAll("_", " "))}</span></div></section></div></main>`;
 }
 
+/** Resolves concise, non-repeating household copy for light and switch cards. */
+function deviceCardCopy(entity: HassEntity | undefined, entityId: string, room: string, label?: string): { readonly room: string; readonly name: string } {
+  const normalizedRoom = room.replace(/\s+/gu, " ").trim();
+  const configuredName = label?.replace(/\s+/gu, " ").trim();
+  const withoutConfiguredName = configuredName !== undefined && configuredName !== "" && normalizedRoom.toLocaleLowerCase().endsWith(` ${configuredName.toLocaleLowerCase()}`)
+    ? normalizedRoom.slice(0, -(configuredName.length + 1)).trim()
+    : normalizedRoom;
+  const conciseRoom = withoutConfiguredName.replace(/\s+(?:lights?|switches?|controls?)$/iu, "").trim() || normalizedRoom;
+  if (configuredName !== undefined && configuredName !== "") return { room: conciseRoom, name: configuredName };
+
+  const friendlyName = stringAttribute(entity, "friendly_name", entityId).replace(/\s+/gu, " ").trim();
+  // Entity registries often prefix a useful control name with its room. Remove only that exact prefix.
+  const roomPrefix = `${conciseRoom} `;
+  const name = friendlyName.toLocaleLowerCase().startsWith(roomPrefix.toLocaleLowerCase())
+    ? friendlyName.slice(roomPrefix.length).trim()
+    : friendlyName;
+  return { room: conciseRoom, name: name || friendlyName };
+}
+
 /** Renders one capability-aware light card. */
-function lightCard(context: RenderContext, entityId: string, room: string, mdi: string): string {
+function lightCard(context: RenderContext, entityId: string, room: string, mdi: string, label?: string): string {
   const reading = readEntity(context.hass, entityId);
   const entity = reading.status === "available" ? reading.entity : undefined;
   const capabilities = lightCapabilities(entity);
@@ -295,33 +314,40 @@ function lightCard(context: RenderContext, entityId: string, room: string, mdi: 
   const stateClass = state === "on" ? "on" : state === "off" ? "off" : "unavailable";
   const brightness = numericAttribute(entity, "brightness", state === "on" ? 255 : 0);
   const percent = Math.round((brightness / 255) * 100);
-  const name = stringAttribute(entity, "friendly_name", entityId);
-  return `<section class="glass light-card ${stateClass}"><button class="light-card-surface" data-action="toggle" data-entity="${escapeHtml(entityId)}" aria-label="Toggle ${escapeHtml(name)}" aria-pressed="${state === "on"}" ${capabilities.available ? "" : "disabled"}><span class="light-heading"><span class="round">${icon(mdi)}</span><span><small>${escapeHtml(room)}</small><strong>${escapeHtml(name)}</strong></span><span class="light-toggle-icon">${icon(state === "on" ? "mdi:lightbulb-on" : "mdi:lightbulb-outline")}</span></span><span class="light-state"><span>${escapeHtml(state)}</span>${capabilities.dimmable ? `<b>${formatDecimal(percent)}%</b>` : ""}</span></button>${capabilities.dimmable ? `<input type="range" min="1" max="100" value="${Math.max(1, percent)}" data-action="brightness" data-entity="${escapeHtml(entityId)}" aria-label="${escapeHtml(name)} brightness" ${capabilities.available ? "" : "disabled"}>` : ""}</section>`;
+  const copy = deviceCardCopy(entity, entityId, room, label);
+  return `<section class="glass light-card ${stateClass}"><button class="light-card-surface" data-action="toggle" data-entity="${escapeHtml(entityId)}" aria-label="Toggle ${escapeHtml(copy.name)}" aria-pressed="${state === "on"}" ${capabilities.available ? "" : "disabled"}><span class="light-heading"><span class="round">${icon(mdi)}</span><span><small>${escapeHtml(copy.room)}</small><strong>${escapeHtml(copy.name)}</strong></span><span class="light-toggle-icon">${icon(state === "on" ? "mdi:lightbulb-on" : "mdi:lightbulb-outline")}</span></span><span class="light-state"><span>${escapeHtml(state)}</span>${capabilities.dimmable ? `<b>${formatDecimal(percent)}%</b>` : ""}</span></button>${capabilities.dimmable ? `<input type="range" min="1" max="100" value="${Math.max(1, percent)}" data-action="brightness" data-entity="${escapeHtml(entityId)}" aria-label="${escapeHtml(copy.name)} brightness" ${capabilities.available ? "" : "disabled"}>` : ""}</section>`;
 }
 
 /** Renders one binary household switch with an explicit on/off state echo. */
-function switchCard(context: RenderContext, entityId: string, room: string, mdi: string): string {
+function switchCard(context: RenderContext, entityId: string, room: string, mdi: string, label?: string): string {
   const reading = readEntity(context.hass, entityId);
   const entity = reading.status === "available" ? reading.entity : undefined;
   const state = entity?.state ?? "unavailable";
   const stateClass = state === "on" ? "on" : state === "off" ? "off" : "unavailable";
-  const name = stringAttribute(entity, "friendly_name", entityId);
-  return `<section class="glass switch-card ${stateClass}"><button class="switch-card-surface" data-action="toggle" data-entity="${escapeHtml(entityId)}" aria-label="Toggle ${escapeHtml(name)}" aria-pressed="${state === "on"}" ${entity === undefined ? "disabled" : ""}><span class="light-heading"><span class="round">${icon(mdi)}</span><span><small>${escapeHtml(room)}</small><strong>${escapeHtml(name)}</strong></span><span class="light-toggle-icon">${icon(state === "on" ? "mdi:toggle-switch" : "mdi:toggle-switch-off-outline")}</span></span><span class="light-state"><span>${escapeHtml(state)}</span><b>${state === "on" ? "On" : state === "off" ? "Off" : "—"}</b></span></button></section>`;
+  const copy = deviceCardCopy(entity, entityId, room, label);
+  return `<section class="glass switch-card ${stateClass}"><button class="switch-card-surface" data-action="toggle" data-entity="${escapeHtml(entityId)}" aria-label="Toggle ${escapeHtml(copy.name)}" aria-pressed="${state === "on"}" ${entity === undefined ? "disabled" : ""}><span class="light-heading"><span class="round">${icon(mdi)}</span><span><small>${escapeHtml(copy.room)}</small><strong>${escapeHtml(copy.name)}</strong></span><span class="light-toggle-icon">${icon(state === "on" ? "mdi:toggle-switch" : "mdi:toggle-switch-off-outline")}</span></span><span class="light-state"><span>${escapeHtml(state)}</span><b>${state === "on" ? "On" : state === "off" ? "Off" : "—"}</b></span></button></section>`;
 }
 
 /** Renders the curated Lights view. */
 function renderLights(context: RenderContext): string {
   const lights = context.config.entities.lights;
   const switches = context.config.entities.switches;
+  // The first configured switch row contains lighting circuits. Keep their
+  // switch domain and service semantics while presenting them with Lights.
+  const lightingSwitches = switches.slice(0, 4);
+  const utilitySwitches = switches.slice(4);
   const activeLights = lights.filter((item) => context.hass.states[item.entity]?.state === "on").length;
-  const activeSwitches = switches.filter((item) => context.hass.states[item.entity]?.state === "on").length;
-  const lightCards = lights.length === 0
+  const activeLightingSwitches = lightingSwitches.filter((item) => context.hass.states[item.entity]?.state === "on").length;
+  const activeUtilitySwitches = utilitySwitches.filter((item) => context.hass.states[item.entity]?.state === "on").length;
+  const lightingControlCount = lights.length + lightingSwitches.length;
+  const activeLightingControlCount = activeLights + activeLightingSwitches;
+  const lightCards = lightingControlCount === 0
     ? `<section class="glass empty compact-empty"><div><h2>No lights configured</h2><p>Add the household lights that belong on this dashboard.</p></div></section>`
-    : lights.map((item) => lightCard(context, item.entity, item.room, item.icon)).join("");
-  const switchCards = switches.length === 0
+    : `${lightingSwitches.map((item) => switchCard(context, item.entity, item.room, item.icon, item.label)).join("")}${lights.map((item) => lightCard(context, item.entity, item.room, item.icon, item.label)).join("")}`;
+  const switchCards = utilitySwitches.length === 0
     ? `<section class="glass empty compact-empty"><div><h2>No switches configured</h2><p>Add household switches only; infrastructure controls stay excluded.</p></div></section>`
-    : switches.map((item) => switchCard(context, item.entity, item.room, item.icon)).join("");
-  return `${header(context, "Lighting and switches", `${activeLights} lights on / ${activeSwitches} switches on`)}<main class="lights-workspace"><section class="device-section" aria-labelledby="lights-heading"><div class="device-section-heading"><h2 id="lights-heading">Lights</h2><span>${activeLights} of ${lights.length} on</span></div><div class="device-grid lights-grid">${lightCards}</div></section><section class="device-section" aria-labelledby="switches-heading"><div class="device-section-heading"><h2 id="switches-heading">Switches</h2><span>${activeSwitches} of ${switches.length} on</span></div><div class="device-grid switches-grid">${switchCards}</div></section></main>`;
+    : utilitySwitches.map((item) => switchCard(context, item.entity, item.room, item.icon, item.label)).join("");
+  return `${header(context, "Lighting and switches", `${activeLightingControlCount} lighting controls on / ${activeUtilitySwitches} switches on`)}<main class="lights-workspace"><section class="device-section" aria-labelledby="lights-heading"><div class="device-section-heading"><h2 id="lights-heading">Lights</h2><span>${activeLightingControlCount} of ${lightingControlCount} on</span></div><div class="device-grid lights-grid">${lightCards}</div></section><section class="device-section" aria-labelledby="switches-heading"><div class="device-section-heading"><h2 id="switches-heading">Switches</h2><span>${activeUtilitySwitches} of ${utilitySwitches.length} on</span></div><div class="device-grid switches-grid">${switchCards}</div></section></main>`;
 }
 
 /** Renders one media room row. */

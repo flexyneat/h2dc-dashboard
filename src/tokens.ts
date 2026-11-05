@@ -3,6 +3,7 @@ interface H2DCTokens {
   readonly color: {
     readonly surface: string;
     readonly surfaceRaised: string;
+    readonly surfaceActive: string;
     readonly onSurface: string;
     readonly onSurfaceMuted: string;
     readonly border: string;
@@ -26,6 +27,7 @@ export const TOKENS = {
   color: {
     surface: "oklch(0.21 0.012 78 / 0.84)",
     surfaceRaised: "oklch(0.27 0.014 78 / 0.9)",
+    surfaceActive: "oklch(0.19 0.025 78 / 0.96)",
     onSurface: "oklch(0.97 0.006 78)",
     onSurfaceMuted: "oklch(0.79 0.012 78)",
     border: "oklch(0.97 0.006 78 / 0.16)",

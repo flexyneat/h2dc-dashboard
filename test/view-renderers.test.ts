@@ -269,6 +269,44 @@ describe("renderView", () => {
     expect(output).not.toContain("Recessed <lights>");
   });
 
+  it("uses concise configured labels instead of device-prefixed friendly names", () => {
+    const fixture = hassFixture();
+    const parsed = parseConfig({
+      ...configFor("lights"),
+      entities: {
+        ...configFor("lights").entities,
+        lights: [{ entity: "light.recessed", room: "Living Room Lights", icon: "mdi:light-recessed", label: "Recessed Lights" }],
+        switches: [{ entity: "switch.outside", room: "Kitchen Accent Lights", icon: "mdi:string-lights", label: "Accent Lights" }],
+      },
+    });
+    if (parsed.status === "invalid") throw new Error(parsed.issues.join("; "));
+
+    const output = renderView({ config: parsed.config, hass: fixture.hass, now: new Date(), reducedMotion: true });
+    expect(output).toContain("<strong>Recessed Lights</strong>");
+    expect(output).toContain("<strong>Accent Lights</strong>");
+    expect(output).toContain("<small>Living Room</small>");
+    expect(output).toContain("<small>Kitchen</small>");
+    expect(output).not.toContain("<small>Living Room Lights</small>");
+    expect(output).not.toContain("<small>Kitchen Accent Lights</small>");
+    expect(output).not.toContain("Recessed &lt;lights&gt;");
+  });
+
+  it("removes a repeated room prefix from registry-provided light names", () => {
+    const fixture = hassFixture();
+    const hass: HomeAssistant = {
+      ...fixture.hass,
+      states: {
+        ...fixture.hass.states,
+        "light.recessed": { state: "on", attributes: { friendly_name: "Living room Recessed Lights" } } satisfies HassEntity,
+      },
+    };
+    const output = renderView({ config: configFor("lights"), hass, now: new Date(), reducedMotion: true });
+
+    expect(output).toContain("<small>Living room</small>");
+    expect(output).toContain("<strong>Recessed Lights</strong>");
+    expect(output).not.toContain("<strong>Living room Recessed Lights</strong>");
+  });
+
   it("renders household lights above household switches with independent state summaries", () => {
     const fixture = hassFixture();
     const hass: HomeAssistant = {
@@ -285,6 +323,31 @@ describe("renderView", () => {
     expect(output).toContain('class="glass switch-card on"');
     expect(output).toContain('aria-pressed="true"');
     expect(output).toContain("50%");
+  });
+
+  it("promotes the first configured switch row into the Lights section without changing toggle semantics", () => {
+    const fixture = hassFixture();
+    const configured = configFor("lights");
+    const config = {
+      ...configured,
+      entities: {
+        ...configured.entities,
+        switches: [
+          { entity: "switch.light_one", room: "Ante-room", icon: "mdi:ceiling-light" },
+          { entity: "switch.light_two", room: "Ante-room", icon: "mdi:ceiling-light" },
+          { entity: "switch.light_three", room: "Ante-room", icon: "mdi:ceiling-light" },
+          { entity: "switch.light_four", room: "Exterior", icon: "mdi:string-lights" },
+          { entity: "switch.utility", room: "Living room", icon: "mdi:power-socket-uk" },
+        ],
+      },
+    };
+    const output = renderView({ config, hass: fixture.hass, now: new Date(), reducedMotion: true });
+    const lightsStart = output.indexOf('id="lights-heading"');
+    const switchesStart = output.indexOf('id="switches-heading"');
+
+    expect(output.indexOf('data-entity="switch.light_one"', lightsStart)).toBeLessThan(switchesStart);
+    expect(output.indexOf('data-entity="switch.utility"', switchesStart)).toBeGreaterThan(switchesStart);
+    expect(output).toContain('class="switch-card-surface" data-action="toggle" data-entity="switch.light_one"');
   });
 
   it("renders an unavailable camera state without inventing a feed", () => {

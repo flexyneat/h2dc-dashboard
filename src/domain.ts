@@ -44,6 +44,7 @@ export interface LightEntity {
   readonly entity: string;
   readonly room: string;
   readonly icon: string;
+  readonly label?: string;
 }
 
 /** A room-specific binary switch exposed as an intentional household control. */
@@ -51,6 +52,7 @@ export interface SwitchEntity {
   readonly entity: string;
   readonly room: string;
   readonly icon: string;
+  readonly label?: string;
 }
 
 /** A room-specific temperature entity. */

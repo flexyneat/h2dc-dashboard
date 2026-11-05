@@ -258,18 +258,28 @@ function ne(e, t) {
 	};
 }
 function re(e, t, n = !0) {
-	return e === void 0 ? [] : Array.isArray(e) ? n && e.length > 8 ? (t.push("entities.lights supports at most 8 entries in the no-scroll layout"), []) : e.flatMap((e, n) => !m(e) || !h(e.entity, "light") || typeof e.room != "string" || typeof e.icon != "string" ? (t.push(`entities.lights[${n}] must contain a light entity, room, and icon`), []) : [{
-		entity: e.entity,
-		room: e.room,
-		icon: e.icon
-	}]) : (t.push("entities.lights must be an array"), []);
+	return e === void 0 ? [] : Array.isArray(e) ? n && e.length > 8 ? (t.push("entities.lights supports at most 8 entries in the no-scroll layout"), []) : e.flatMap((e, n) => {
+		if (!m(e) || !h(e.entity, "light") || typeof e.room != "string" || typeof e.icon != "string") return t.push(`entities.lights[${n}] must contain a light entity, room, and icon`), [];
+		let r = typeof e.label == "string" && e.label.trim() !== "" ? e.label.trim() : void 0;
+		return [{
+			entity: e.entity,
+			room: e.room,
+			icon: e.icon,
+			...r === void 0 ? {} : { label: r }
+		}];
+	}) : (t.push("entities.lights must be an array"), []);
 }
 function ie(e, t, n = !0) {
-	return e === void 0 ? [] : Array.isArray(e) ? n && e.length > 8 ? (t.push("entities.switches supports at most 8 entries in the no-scroll layout"), []) : e.flatMap((e, n) => !m(e) || !h(e.entity, "switch") || typeof e.room != "string" || typeof e.icon != "string" ? (t.push(`entities.switches[${n}] must contain a switch entity, room, and icon`), []) : [{
-		entity: e.entity,
-		room: e.room,
-		icon: e.icon
-	}]) : (t.push("entities.switches must be an array"), []);
+	return e === void 0 ? [] : Array.isArray(e) ? n && e.length > 8 ? (t.push("entities.switches supports at most 8 entries in the no-scroll layout"), []) : e.flatMap((e, n) => {
+		if (!m(e) || !h(e.entity, "switch") || typeof e.room != "string" || typeof e.icon != "string") return t.push(`entities.switches[${n}] must contain a switch entity, room, and icon`), [];
+		let r = typeof e.label == "string" && e.label.trim() !== "" ? e.label.trim() : void 0;
+		return [{
+			entity: e.entity,
+			room: e.room,
+			icon: e.icon,
+			...r === void 0 ? {} : { label: r }
+		}];
+	}) : (t.push("entities.switches must be an array"), []);
 }
 function ae(e, t) {
 	return e === void 0 ? [] : Array.isArray(e) ? e.flatMap((e, n) => {
@@ -1655,6 +1665,7 @@ var He = class {
 	color: {
 		surface: "oklch(0.21 0.012 78 / 0.84)",
 		surfaceRaised: "oklch(0.27 0.014 78 / 0.9)",
+		surfaceActive: "oklch(0.19 0.025 78 / 0.96)",
 		onSurface: "oklch(0.97 0.006 78)",
 		onSurfaceMuted: "oklch(0.79 0.012 78)",
 		border: "oklch(0.97 0.006 78 / 0.16)",
@@ -1713,6 +1724,7 @@ var He = class {
   font-variant-numeric: tabular-nums;
   --surface: ${z.color.surface};
   --surface-raised: ${z.color.surfaceRaised};
+  --surface-active: ${z.color.surfaceActive};
   --on-surface: ${z.color.onSurface};
   --on-muted: ${z.color.onSurfaceMuted};
   --border: ${z.color.border};
@@ -1886,7 +1898,16 @@ header { position: relative; min-height: 12rem; }
 .control { display: grid; place-items: center; gap: var(--gap-1); padding: var(--gap-2); text-align: center; }
 .control span, .control small { display: block; }
 .control small { color: var(--on-muted); text-transform: capitalize; }
-.control.on, .light-card.on { color: var(--accent); border-color: oklch(0.79 0.15 82 / 0.65); background: oklch(0.79 0.15 82 / 0.14); }
+.control.on, .light-card.on, .switch-card.on { color: var(--on-surface); border-color: var(--accent); background: var(--surface-active); }
+.control.on ha-icon,
+.light-card.on .round,
+.light-card.on .light-toggle-icon,
+.light-card.on .light-state b,
+.switch-card.on .round,
+.switch-card.on .light-toggle-icon,
+.switch-card.on .light-state b { color: var(--accent); }
+.light-card.on .light-heading small,
+.switch-card.on .light-heading small { color: var(--on-surface); }
 .summary-row { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap-4); }
 .pulse-row { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap-4); }
 .pulse-card { display: flex; min-height: 4.5rem; align-items: center; gap: var(--gap-3); padding: var(--gap-3) var(--gap-4); }
@@ -2077,7 +2098,7 @@ header { position: relative; min-height: 12rem; }
 .sonos-workspace.sonora-ready .sonos-curtain { opacity: 0; }
 .diagnostic-control { width: 100%; color: inherit; text-align: start; cursor: pointer; }
 .diagnostic-hint { display: block; color: var(--on-muted); font-size: .78rem; }
-.lights-workspace { display: grid; height: calc(100vh - 15rem); min-height: 0; grid-template-rows: repeat(2, minmax(0, 1fr)); gap: var(--gap-4); overflow: hidden; }
+.lights-workspace { display: grid; height: calc(100vh - 15rem); min-height: 0; grid-template-rows: minmax(0, 3fr) minmax(0, 1fr); gap: var(--gap-4); overflow: hidden; }
 .device-section { display: grid; min-height: 0; grid-template-rows: auto minmax(0, 1fr); gap: var(--gap-2); }
 .device-section-heading { display: flex; align-items: baseline; justify-content: space-between; padding-inline: var(--gap-1); }
 .device-section-heading h2 { margin: 0; font-size: 1.15rem; }
@@ -2093,7 +2114,6 @@ header { position: relative; min-height: 12rem; }
 .light-state { display: flex; align-items: end; justify-content: space-between; text-transform: capitalize; }
 .light-state b { font-size: 2.5rem; }
 .light-card input { width: 100%; min-height: 2.75rem; accent-color: var(--accent); }
-.switch-card.on { color: var(--accent); border-color: oklch(0.79 0.15 82 / 0.65); background: oklch(0.79 0.15 82 / 0.14); }
 .switch-card .light-state b { font-size: 1.25rem; }
 .compact-empty { min-height: 0; grid-column: 1 / -1; }
 .diagnostics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -2160,7 +2180,7 @@ header { position: relative; min-height: 12rem; }
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
   .flow-arrow { display: none; }
 }
-`, We = "1.0.1";
+`, We = "1.1.0";
 // src/contextual-home.ts
 function Ge(e, t) {
 	let n = e.rooms.flatMap((e) => e.occupancy);
@@ -2432,34 +2452,46 @@ function lt(e) {
 	return `${K(e, "Climate overview", `Air conditioning ${U(e, t.climate, "off")} · Living room ${W(e, t.roomTemperature)} degrees Celsius`)}<main class="page-grid climate-grid"><div class="temps">${i || "<section class=\"glass empty\"><p>No room temperature sensors configured.</p></section>"}</div><section class="glass thermostat"><div class="card-title">Air conditioning</div><div class="climate-reading"><strong>${Y(W(e, t.roomTemperature))}</strong><small>Living room</small></div>${et(e)}</section><div class="climate-right"><section class="glass outside weather-surface weather-${k(o)}" data-weather-condition="${k(o)}">${B(Qe(a))}<div><small>Outside</small><strong>${Y(s)}</strong><span>${k(a.replaceAll("_", " "))}</span></div></section></div></main>`;
 }
 function ut(e, t, n, r) {
-	let i = D(e.hass, t), a = i.status === "available" ? i.entity : void 0, o = qe(a), s = a?.state ?? "unavailable", c = s === "on" ? "on" : s === "off" ? "off" : "unavailable", l = H(a, "brightness", s === "on" ? 255 : 0), u = Math.round(l / 255 * 100), d = V(a, "friendly_name", t);
-	return `<section class="glass light-card ${c}"><button class="light-card-surface" data-action="toggle" data-entity="${k(t)}" aria-label="Toggle ${k(d)}" aria-pressed="${s === "on"}" ${o.available ? "" : "disabled"}><span class="light-heading"><span class="round">${B(r)}</span><span><small>${k(n)}</small><strong>${k(d)}</strong></span><span class="light-toggle-icon">${B(s === "on" ? "mdi:lightbulb-on" : "mdi:lightbulb-outline")}</span></span><span class="light-state"><span>${k(s)}</span>${o.dimmable ? `<b>${A(u)}%</b>` : ""}</span></button>${o.dimmable ? `<input type="range" min="1" max="100" value="${Math.max(1, u)}" data-action="brightness" data-entity="${k(t)}" aria-label="${k(d)} brightness" ${o.available ? "" : "disabled"}>` : ""}</section>`;
+	let i = n.replace(/\s+/gu, " ").trim(), a = r?.replace(/\s+/gu, " ").trim(), o = (a !== void 0 && a !== "" && i.toLocaleLowerCase().endsWith(` ${a.toLocaleLowerCase()}`) ? i.slice(0, -(a.length + 1)).trim() : i).replace(/\s+(?:lights?|switches?|controls?)$/iu, "").trim() || i;
+	if (a !== void 0 && a !== "") return {
+		room: o,
+		name: a
+	};
+	let s = V(e, "friendly_name", t).replace(/\s+/gu, " ").trim(), c = `${o} `;
+	return {
+		room: o,
+		name: (s.toLocaleLowerCase().startsWith(c.toLocaleLowerCase()) ? s.slice(c.length).trim() : s) || s
+	};
 }
-function dt(e, t, n, r) {
-	let i = D(e.hass, t), a = i.status === "available" ? i.entity : void 0, o = a?.state ?? "unavailable", s = o === "on" ? "on" : o === "off" ? "off" : "unavailable", c = V(a, "friendly_name", t);
-	return `<section class="glass switch-card ${s}"><button class="switch-card-surface" data-action="toggle" data-entity="${k(t)}" aria-label="Toggle ${k(c)}" aria-pressed="${o === "on"}" ${a === void 0 ? "disabled" : ""}><span class="light-heading"><span class="round">${B(r)}</span><span><small>${k(n)}</small><strong>${k(c)}</strong></span><span class="light-toggle-icon">${B(o === "on" ? "mdi:toggle-switch" : "mdi:toggle-switch-off-outline")}</span></span><span class="light-state"><span>${k(o)}</span><b>${o === "on" ? "On" : o === "off" ? "Off" : "—"}</b></span></button></section>`;
+function dt(e, t, n, r, i) {
+	let a = D(e.hass, t), o = a.status === "available" ? a.entity : void 0, s = qe(o), c = o?.state ?? "unavailable", l = c === "on" ? "on" : c === "off" ? "off" : "unavailable", u = H(o, "brightness", c === "on" ? 255 : 0), d = Math.round(u / 255 * 100), f = ut(o, t, n, i);
+	return `<section class="glass light-card ${l}"><button class="light-card-surface" data-action="toggle" data-entity="${k(t)}" aria-label="Toggle ${k(f.name)}" aria-pressed="${c === "on"}" ${s.available ? "" : "disabled"}><span class="light-heading"><span class="round">${B(r)}</span><span><small>${k(f.room)}</small><strong>${k(f.name)}</strong></span><span class="light-toggle-icon">${B(c === "on" ? "mdi:lightbulb-on" : "mdi:lightbulb-outline")}</span></span><span class="light-state"><span>${k(c)}</span>${s.dimmable ? `<b>${A(d)}%</b>` : ""}</span></button>${s.dimmable ? `<input type="range" min="1" max="100" value="${Math.max(1, d)}" data-action="brightness" data-entity="${k(t)}" aria-label="${k(f.name)} brightness" ${s.available ? "" : "disabled"}>` : ""}</section>`;
 }
-function ft(e) {
-	let t = e.config.entities.lights, n = e.config.entities.switches, r = t.filter((t) => e.hass.states[t.entity]?.state === "on").length, i = n.filter((t) => e.hass.states[t.entity]?.state === "on").length, a = t.length === 0 ? "<section class=\"glass empty compact-empty\"><div><h2>No lights configured</h2><p>Add the household lights that belong on this dashboard.</p></div></section>" : t.map((t) => ut(e, t.entity, t.room, t.icon)).join(""), o = n.length === 0 ? "<section class=\"glass empty compact-empty\"><div><h2>No switches configured</h2><p>Add household switches only; infrastructure controls stay excluded.</p></div></section>" : n.map((t) => dt(e, t.entity, t.room, t.icon)).join("");
-	return `${K(e, "Lighting and switches", `${r} lights on / ${i} switches on`)}<main class="lights-workspace"><section class="device-section" aria-labelledby="lights-heading"><div class="device-section-heading"><h2 id="lights-heading">Lights</h2><span>${r} of ${t.length} on</span></div><div class="device-grid lights-grid">${a}</div></section><section class="device-section" aria-labelledby="switches-heading"><div class="device-section-heading"><h2 id="switches-heading">Switches</h2><span>${i} of ${n.length} on</span></div><div class="device-grid switches-grid">${o}</div></section></main>`;
+function ft(e, t, n, r, i) {
+	let a = D(e.hass, t), o = a.status === "available" ? a.entity : void 0, s = o?.state ?? "unavailable", c = s === "on" ? "on" : s === "off" ? "off" : "unavailable", l = ut(o, t, n, i);
+	return `<section class="glass switch-card ${c}"><button class="switch-card-surface" data-action="toggle" data-entity="${k(t)}" aria-label="Toggle ${k(l.name)}" aria-pressed="${s === "on"}" ${o === void 0 ? "disabled" : ""}><span class="light-heading"><span class="round">${B(r)}</span><span><small>${k(l.room)}</small><strong>${k(l.name)}</strong></span><span class="light-toggle-icon">${B(s === "on" ? "mdi:toggle-switch" : "mdi:toggle-switch-off-outline")}</span></span><span class="light-state"><span>${k(s)}</span><b>${s === "on" ? "On" : s === "off" ? "Off" : "—"}</b></span></button></section>`;
+}
+function pt(e) {
+	let t = e.config.entities.lights, n = e.config.entities.switches, r = n.slice(0, 4), i = n.slice(4), a = t.filter((t) => e.hass.states[t.entity]?.state === "on").length, o = r.filter((t) => e.hass.states[t.entity]?.state === "on").length, s = i.filter((t) => e.hass.states[t.entity]?.state === "on").length, c = t.length + r.length, l = a + o, u = c === 0 ? "<section class=\"glass empty compact-empty\"><div><h2>No lights configured</h2><p>Add the household lights that belong on this dashboard.</p></div></section>" : `${r.map((t) => ft(e, t.entity, t.room, t.icon, t.label)).join("")}${t.map((t) => dt(e, t.entity, t.room, t.icon, t.label)).join("")}`, d = i.length === 0 ? "<section class=\"glass empty compact-empty\"><div><h2>No switches configured</h2><p>Add household switches only; infrastructure controls stay excluded.</p></div></section>" : i.map((t) => ft(e, t.entity, t.room, t.icon, t.label)).join("");
+	return `${K(e, "Lighting and switches", `${l} lighting controls on / ${s} switches on`)}<main class="lights-workspace"><section class="device-section" aria-labelledby="lights-heading"><div class="device-section-heading"><h2 id="lights-heading">Lights</h2><span>${l} of ${c} on</span></div><div class="device-grid lights-grid">${u}</div></section><section class="device-section" aria-labelledby="switches-heading"><div class="device-section-heading"><h2 id="switches-heading">Switches</h2><span>${s} of ${i.length} on</span></div><div class="device-grid switches-grid">${d}</div></section></main>`;
 }
 function Q(e, t, n, r) {
 	if (t === void 0) return `<div class="room-row unavailable"><span>${B(r)}</span><div><strong>${k(n)}</strong><small>Not configured</small></div></div>`;
 	let i = D(e.hass, t), a = i.status === "available" ? i.entity : void 0;
 	return `<div class="room-row"><span>${B(r)}</span><div><strong>${k(n)}</strong><small>${k(V(a, "media_title", a?.state ?? "Unavailable"))}</small></div><button class="media-action" data-action="media" data-entity="${k(t)}" data-command="media_play_pause" aria-label="Play or pause ${k(n)}" ${a === void 0 ? "disabled" : ""}>${B("mdi:play-pause")}</button></div>`;
 }
-function pt(e) {
+function mt(e) {
 	let t = e.config.entities.media, n = R(e.hass, t), r = n?.entityId ?? t.primary, i = n?.entity ?? (r === void 0 ? void 0 : e.hass.states[r]), a = r === void 0 ? void 0 : k(r), o = i === void 0 ? "disabled" : "";
 	return `${K(e, "Media overview", "Whole-house audio and television control")}<main class="page-grid media-grid"><section class="glass rooms media-living"><div class="card-title">Living room</div>${Q(e, t.primary, "Surround speakers", "mdi:speaker-multiple")}${Q(e, t.livingTv, "Living room TV", "mdi:television")}</section><section class="glass now media-now">${Ze(e)}<div class="now-content"><div class="card-title">Now playing</div><div class="album">${Ye(e, !1)}</div><h2>${k(V(i, "media_title", "No media playing"))}</h2><span>${k(V(i, "media_artist", "Select a source to start listening"))}</span>${a === void 0 ? "" : `<div class="transport"><button class="media-action" data-action="media" data-entity="${a}" data-command="media_previous_track" aria-label="Previous track" ${o}>${B("mdi:skip-previous")}</button><button class="media-action" data-action="media" data-entity="${a}" data-command="media_play_pause" aria-label="Play or pause" ${o}>${B("mdi:play")}</button><button class="media-action" data-action="media" data-entity="${a}" data-command="media_next_track" aria-label="Next track" ${o}>${B("mdi:skip-next")}</button></div>`}</div></section><section class="glass rooms media-private"><div class="card-title">Private rooms</div>${Q(e, t.bedroom, "Master bedroom", "mdi:bed-king-outline")}${Q(e, t.study, "Study", "mdi:bookshelf")}</section><section class="glass rooms media-whole"><div class="card-title">Common areas</div>${Q(e, t.family, "Family lounge", "mdi:sofa-outline")}${Q(e, t.kitchen, "Kitchen", "mdi:silverware-fork-knife")}${Q(e, t.dining, "Dining", "mdi:table-furniture")}${Q(e, t.roam, "Sonos Roam", "mdi:speaker-wireless")}</section><section class="glass quick media-quick"><div class="card-title">Quick controls</div>${a === void 0 ? "" : `<button class="media-action" data-action="media" data-entity="${a}" data-command="media_pause" ${o}>${B("mdi:pause")} Pause all</button>`}${e.config.sonoraUrl === void 0 ? "<p>Sonos controller URL not configured.</p>" : `<a href="${k(G(e.config, "sonos"))}">${B("mdi:speaker-multiple")} Open Sonos controller</a>`}</section></main>`;
 }
-function mt(e) {
+function ht(e) {
 	return `${K(e, "Sonos controller", "Connected whole-house audio control")}<main class="sonos-workspace">${e.config.sonoraUrl === void 0 ? `<section class="glass empty"><div>${B("mdi:speaker-multiple")}<h2>Whole-house audio</h2><p>Add the HTTPS Sonora URL in the visual editor.</p></div></section>` : `<iframe class="sonos-frame" src="${k(e.config.sonoraUrl)}" title="Sonos whole-house controller" loading="eager" referrerpolicy="no-referrer" allow="autoplay; fullscreen"></iframe><div class="sonos-curtain" data-sonos-curtain role="status"><span>${B("mdi:speaker-multiple")}</span><strong>Preparing Sonos controls</strong><small>Applying the H2DC appearance</small></div>`}</main>`;
 }
-function ht(e, t, n, r, i = "", a = !1) {
+function gt(e, t, n, r, i = "", a = !1) {
 	let o = r === void 0 ? { status: "unavailable" } : O(e.hass, r), s = o.status === "available" ? A(o.value) : U(e, r), c = s !== "Unavailable", l = s === "on" ? "Tap to turn off" : s === "off" ? "Tap to turn on" : "Control unavailable", u = `<span class="round">${B(t)}</span><div><small>${k(n)}</small><strong>${k(s)}${c ? k(i) : ""}</strong><span class="diagnostic-hint">${a && c ? l : c ? "Live status" : "Not configured"}</span></div>`;
 	return a && r !== void 0 ? `<button class="glass diagnostic diagnostic-control ${c ? "available" : "unavailable"}" data-action="poe-toggle" data-entity="${k(r)}" ${c ? "" : "disabled"}>${u}</button>` : `<section class="glass diagnostic ${c ? "available" : "unavailable"}">${u}</section>`;
 }
-function gt(e) {
+function _t(e) {
 	let t = e.config.entities.diagnostics, n = [
 		[
 			"mdi:battery",
@@ -2498,29 +2530,29 @@ function gt(e) {
 			" W"
 		]
 	], r = n.filter(([, , t]) => U(e, t) === "Unavailable").length;
-	return `${K(e, "System overview", r === 0 ? "Tablet and PoE telemetry online" : `${r} diagnostics unavailable`)}<main class="page-grid diagnostics-grid">${n.map(([t, n, r, i]) => ht(e, t, n, r, i, n === "PoE port")).join("")}<section class="glass diagnostic-note"><div class="card-title">Commissioning status</div><p>Tablet telemetry remains read-only. The PoE control requires confirmation before Home Assistant changes the wall-tablet power feed.</p></section></main>`;
+	return `${K(e, "System overview", r === 0 ? "Tablet and PoE telemetry online" : `${r} diagnostics unavailable`)}<main class="page-grid diagnostics-grid">${n.map(([t, n, r, i]) => gt(e, t, n, r, i, n === "PoE port")).join("")}<section class="glass diagnostic-note"><div class="card-title">Commissioning status</div><p>Tablet telemetry remains read-only. The PoE control requires confirmation before Home Assistant changes the wall-tablet power feed.</p></section></main>`;
 }
-function _t(e) {
+function vt(e) {
 	switch (e.config.view) {
 		case "home": return rt(e);
 		case "security": return ot(e);
 		case "energy": return st(e);
 		case "climate": return lt(e);
-		case "lights": return ft(e);
-		case "media": return pt(e);
-		case "sonos": return mt(e);
-		case "diagnostics": return gt(e);
+		case "lights": return pt(e);
+		case "media": return mt(e);
+		case "sonos": return ht(e);
+		case "diagnostics": return _t(e);
 		default: return e.config.view;
 	}
 }
-var vt = "sensor.h2dc_powerflo_telemetry_status";
-function yt(e, t) {
+var yt = "sensor.h2dc_powerflo_telemetry_status";
+function bt(e, t) {
 	return e !== t;
 }
-function bt(e, t, n) {
-	yt(e, t) && n();
+function xt(e, t, n) {
+	bt(e, t) && n();
 }
-function xt(e, t) {
+function St(e, t) {
 	let n = t.gridConnected, r = n === void 0 ? void 0 : e.states[n], i = r?.state === "1.0" ? "on" : r?.state === "0.0" ? "off" : void 0, a = i === void 0 || n === void 0 || r === void 0 ? e.states : {
 		...e.states,
 		[n]: {
@@ -2532,8 +2564,8 @@ function xt(e, t) {
 		let n = e.states[t.freshness], r = n?.state === "on" ? "Online" : n?.state === "off" ? "Telemetry stale" : "Telemetry unavailable";
 		a = {
 			...a,
-			[vt]: {
-				entity_id: vt,
+			[yt]: {
+				entity_id: yt,
 				state: r,
 				attributes: {
 					friendly_name: "H2DC PowerFlo telemetry status",
@@ -2554,7 +2586,7 @@ function xt(e, t) {
 		...e.callWS === void 0 ? {} : { callWS: (t) => e.callWS?.(t) ?? Promise.reject(/* @__PURE__ */ Error("Home Assistant WebSocket API unavailable")) }
 	};
 }
-function St(e) {
+function Ct(e) {
 	let t = Object.fromEntries([
 		["freshness", "freshness"],
 		["inverterStatus", "inverter_status"],
@@ -2604,10 +2636,10 @@ function St(e) {
 	}));
 	return e.inverterStatus === void 0 ? {
 		...t,
-		inverter_status: vt
+		inverter_status: yt
 	} : t;
 }
-function Ct(e) {
+function wt(e) {
 	return {
 		title: e.title,
 		inverter_name: e.inverterName,
@@ -2650,25 +2682,25 @@ function Ct(e) {
 		flow_release_w: e.flowReleaseW
 	};
 }
-function wt(e) {
+function Tt(e) {
 	return {
 		type: "custom:powerflo-card",
-		...Ct(e.powerFlo),
+		...wt(e.powerFlo),
 		flow_threshold_w: e.flowThresholdW,
 		battery_positive: e.batteryPositiveIs,
 		grid_positive: e.gridPositiveIs,
 		weather_entity: e.entities.weather,
-		entities: St(e.entities.energy)
+		entities: Ct(e.entities.energy)
 	};
 }
-function Tt(e, t, n, r) {
+function Et(e, t, n, r) {
 	if (customElements.get("powerflo-card") === void 0) return;
 	let i = r ?? document.createElement("powerflo-card");
-	return r === void 0 && (i.classList.add("powerflo-card"), i.setConfig(wt(t))), i.hass = xt(n, t.entities.energy), bt(i.parentElement, e, () => e.replaceChildren(i)), i;
+	return r === void 0 && (i.classList.add("powerflo-card"), i.setConfig(Tt(t))), i.hass = St(n, t.entities.energy), xt(i.parentElement, e, () => e.replaceChildren(i)), i;
 }
 // src/sonora-frame.ts
-var Et = z.readiness.sonoraThemeSettle, Dt = z.readiness.sonoraThemeTimeout;
-async function Ot(e, t, n, r = (e) => new Promise((t) => window.setTimeout(t, e))) {
+var Dt = z.readiness.sonoraThemeSettle, Ot = z.readiness.sonoraThemeTimeout;
+async function kt(e, t, n, r = (e) => new Promise((t) => window.setTimeout(t, e))) {
 	let i = new URL("/api/themes", e), a = () => new Promise(() => {}), o = t(i, {
 		credentials: "omit",
 		signal: n
@@ -2677,27 +2709,27 @@ async function Ot(e, t, n, r = (e) => new Promise((t) => window.setTimeout(t, e)
 	});
 	await Promise.race([
 		o,
-		r(Dt),
+		r(Ot),
 		s
-	]), n.aborted || await r(Et);
+	]), n.aborted || await r(Dt);
 }
-function kt(e) {
+function At(e) {
 	return JSON.stringify(e);
 }
-function At(e, t, n) {
+function jt(e, t, n) {
 	return e === "sonos" && !t && n;
 }
 // src/index.ts
-function jt() {
+function Mt() {
 	return "<dialog class=\"energy-dialog\" data-energy-dialog aria-labelledby=\"energy-dialog-title\"><div class=\"energy-dialog-frame\"><header class=\"energy-dialog-header\"><div><span>Energy detail</span><h2 id=\"energy-dialog-title\" data-energy-dialog-title>Energy analysis</h2><p data-energy-dialog-summary>Live read-only telemetry and recorded history.</p></div><button class=\"dialog-close\" data-action=\"energy-detail-close\" aria-label=\"Close energy details\">×</button></header><section data-energy-focused-host hidden></section><section class=\"powerflo-host\" data-powerflo-host aria-label=\"Complete PowerFlo energy dashboard\" hidden></section><section class=\"glass dependency\" data-powerflo-missing role=\"status\" hidden><h2>PowerFlo is not loaded</h2><p>Install and register the PowerFlo resource to preserve live flow, both battery estimates, history, readiness, insights and solar outlook.</p></section></div></dialog>";
 }
-function Mt() {
+function Nt() {
 	return "<dialog class=\"energy-dialog security-dialog\" data-security-dialog aria-labelledby=\"security-dialog-title\"><div class=\"security-dialog-frame\"><header class=\"energy-dialog-header\"><div><span>UniFi Protect &middot; medium stream</span><h2 id=\"security-dialog-title\" data-security-dialog-title>Camera</h2><p>Live playback starts only for the selected camera and stops when this dialog closes.</p></div><button class=\"dialog-close\" data-action=\"camera-detail-close\" aria-label=\"Close live camera\">&times;</button></header><section class=\"security-stream\"><img data-security-stream alt=\"\" hidden><p class=\"security-stream-status\" data-security-stream-status role=\"status\">Select a camera to begin medium-quality playback.</p></section></div></dialog>";
 }
-function Nt(e) {
+function Pt(e) {
 	return e.replaceAll("\\", "\\\\").replaceAll("\"", "\\\"").replaceAll("\n", "").replaceAll("\r", "");
 }
-function Pt(e, t, n) {
+function Ft(e, t, n) {
 	let r = e.backgrounds.perView[e.view];
 	if (r !== void 0) return r;
 	let i = t.states["sun.sun"]?.state;
@@ -2708,7 +2740,7 @@ function $(e, t) {
 	if (n === void 0 || n === "") throw Error(`Missing interaction data: ${String(t)}`);
 	return n;
 }
-function Ft(e) {
+function It(e) {
 	if (e instanceof HTMLElement && e.dataset.action !== void 0) return {
 		action: e.dataset.action,
 		...e.dataset.entity === void 0 ? {} : { entity: e.dataset.entity },
@@ -2717,10 +2749,10 @@ function Ft(e) {
 		...e.dataset.value === void 0 ? {} : { value: e.dataset.value }
 	};
 }
-function It(e, t) {
+function Lt(e, t) {
 	return e.dataset.action === t.action && e.dataset.entity === t.entity && e.dataset.command === t.command && e.dataset.mode === t.mode && e.dataset.value === t.value;
 }
-var Lt = class extends HTMLElement {
+var Rt = class extends HTMLElement {
 	#e;
 	#t;
 	#n;
@@ -2758,7 +2790,7 @@ var Lt = class extends HTMLElement {
 		}) };
 	}
 	setConfig(e) {
-		let t = S(e), n = t.status === "valid" ? kt(t.config) : void 0, r = n !== void 0 && n === this.#r;
+		let t = S(e), n = t.status === "valid" ? At(t.config) : void 0, r = n !== void 0 && n === this.#r;
 		r || (this.#p = E(this.#p, { reason: "config-change" })), this.#n = t.status === "valid" ? t.config : void 0, this.#a = t.status === "invalid" ? t.issues : [], this.#r = n, r ? (this.#_(), this.#D()) : (this.#u = void 0, this.#d = !0, this.#m.disconnect(), this.#e.querySelector("[data-persistent-layer]")?.replaceChildren(), this.#_(), this.#D());
 	}
 	set hass(e) {
@@ -2772,7 +2804,7 @@ var Lt = class extends HTMLElement {
 		t !== null && n !== null && t.addEventListener("load", () => {
 			this.#f?.abort();
 			let e = new AbortController();
-			this.#f = e, Ot(t.src, window.fetch.bind(window), e.signal).then(() => {
+			this.#f = e, kt(t.src, window.fetch.bind(window), e.signal).then(() => {
 				!e.signal.aborted && n.isConnected && (n.classList.add("sonora-ready"), n.querySelector("[data-sonos-curtain]")?.setAttribute("aria-hidden", "true"), this.#f === e && (this.#f = void 0));
 			});
 		}, { once: !0 });
@@ -2940,7 +2972,7 @@ var Lt = class extends HTMLElement {
 		t !== null && (t.textContent = e);
 	}
 	#D() {
-		let e = Ft(this.#e.activeElement);
+		let e = It(this.#e.activeElement);
 		this.classList.toggle("admin", new URLSearchParams(window.location.search).get("h2dc_admin") === "1");
 		let t = this.#n, n = this.#i, r = this.#e.querySelector("[data-render-frame]"), i = this.#e.querySelector("[data-persistent-layer]");
 		if (r === null || i === null) return;
@@ -2955,40 +2987,40 @@ var Lt = class extends HTMLElement {
 		if (this.#p = E(this.#p, {
 			reason: "render",
 			view: t.view
-		}), At(t.view, this.#d, r.querySelector(".sonos-frame") !== null)) return;
+		}), jt(t.view, this.#d, r.querySelector(".sonos-frame") !== null)) return;
 		let a = /* @__PURE__ */ new Date(), o = this.#m.artwork;
-		r.innerHTML = `<article class="shell" data-kiosk-profile="${k(t.presentation.kioskProfile)}" data-density="${k(t.presentation.density)}">${_t({
+		r.innerHTML = `<article class="shell" data-kiosk-profile="${k(t.presentation.kioskProfile)}" data-density="${k(t.presentation.density)}">${vt({
 			config: t,
 			hass: n,
 			now: a,
 			reducedMotion: this.#t.matches,
 			...o === void 0 ? {} : { mediaArtwork: o }
 		})}<p class="sr-only" data-live-status aria-live="polite">${k(this.#o)}</p></article>`, this.#y(), this.#d = !1;
-		let s = r.querySelector(".shell"), c = Pt(t, n, a);
-		if (s !== null && (s.style.setProperty("--accent", t.presentation.accent), s.style.setProperty("--h2dc-font-family", `"${Nt(t.presentation.fontFamily)}", system-ui, sans-serif`), s.style.setProperty("--h2dc-overlay-strength", String(t.presentation.overlayStrength)), c !== void 0 && s.style.setProperty("--active-background", `url("${Nt(c)}")`)), t.view === "sonos" && this.#g(r), t.view === "energy") {
+		let s = r.querySelector(".shell"), c = Ft(t, n, a);
+		if (s !== null && (s.style.setProperty("--accent", t.presentation.accent), s.style.setProperty("--h2dc-font-family", `"${Pt(t.presentation.fontFamily)}", system-ui, sans-serif`), s.style.setProperty("--h2dc-overlay-strength", String(t.presentation.overlayStrength)), c !== void 0 && s.style.setProperty("--active-background", `url("${Pt(c)}")`)), t.view === "sonos" && this.#g(r), t.view === "energy") {
 			if (i.querySelector("[data-energy-dialog]") === null) {
-				i.innerHTML = jt();
+				i.innerHTML = Mt();
 				let e = i.querySelector("[data-energy-dialog]");
 				e?.addEventListener("close", () => this.#x(e));
 			}
 			let e = i.querySelector("[data-powerflo-host]"), r = i.querySelector("[data-powerflo-missing]");
-			e !== null && (this.#u = Tt(e, t, n, this.#u), r !== null && (r.hidden = this.#s !== "analysis" || this.#u !== void 0)), this.#b();
+			e !== null && (this.#u = Et(e, t, n, this.#u), r !== null && (r.hidden = this.#s !== "analysis" || this.#u !== void 0)), this.#b();
 		} else {
 			this.#s = void 0, this.#c = void 0;
 			let e = i.querySelector("[data-energy-dialog]");
 			e?.open === !0 && e.close();
 		}
-		if (t.view === "security") i.querySelector("[data-security-dialog]") === null && i.insertAdjacentHTML("beforeend", Mt()), this.#C();
+		if (t.view === "security") i.querySelector("[data-security-dialog]") === null && i.insertAdjacentHTML("beforeend", Nt()), this.#C();
 		else {
 			this.#l = void 0;
 			let e = i.querySelector("[data-security-dialog]");
 			e?.open === !0 && e.close();
 		}
-		e !== void 0 && [...this.#e.querySelectorAll("[data-action]")].find((t) => It(t, e))?.focus({ preventScroll: !0 });
+		e !== void 0 && [...this.#e.querySelectorAll("[data-action]")].find((t) => Lt(t, e))?.focus({ preventScroll: !0 });
 	}
 };
-function Rt() {
-	customElements.get("h2dc-dashboard-card") || customElements.define("h2dc-dashboard-card", Lt), customElements.get("h2dc-dashboard-editor") || customElements.define("h2dc-dashboard-editor", Ne), window.customCards ??= [], window.customCards.some((e) => e.type === "h2dc-dashboard-card") || window.customCards.push({
+function zt() {
+	customElements.get("h2dc-dashboard-card") || customElements.define("h2dc-dashboard-card", Rt), customElements.get("h2dc-dashboard-editor") || customElements.define("h2dc-dashboard-editor", Ne), window.customCards ??= [], window.customCards.some((e) => e.type === "h2dc-dashboard-card") || window.customCards.push({
 		type: "h2dc-dashboard-card",
 		name: "H2DC Dashboard",
 		description: "Configurable wall-tablet dashboard for Home Assistant",
@@ -2997,4 +3029,4 @@ function Rt() {
 	}), console.info(`H2DC Dashboard ${We} loaded`);
 }
 // src/public-entry.ts
-Rt();
+zt();

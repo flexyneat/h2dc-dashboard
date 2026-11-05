@@ -21,6 +21,7 @@ export const CARD_STYLES = `
   font-variant-numeric: tabular-nums;
   --surface: ${TOKENS.color.surface};
   --surface-raised: ${TOKENS.color.surfaceRaised};
+  --surface-active: ${TOKENS.color.surfaceActive};
   --on-surface: ${TOKENS.color.onSurface};
   --on-muted: ${TOKENS.color.onSurfaceMuted};
   --border: ${TOKENS.color.border};
@@ -194,7 +195,16 @@ header { position: relative; min-height: 12rem; }
 .control { display: grid; place-items: center; gap: var(--gap-1); padding: var(--gap-2); text-align: center; }
 .control span, .control small { display: block; }
 .control small { color: var(--on-muted); text-transform: capitalize; }
-.control.on, .light-card.on { color: var(--accent); border-color: oklch(0.79 0.15 82 / 0.65); background: oklch(0.79 0.15 82 / 0.14); }
+.control.on, .light-card.on, .switch-card.on { color: var(--on-surface); border-color: var(--accent); background: var(--surface-active); }
+.control.on ha-icon,
+.light-card.on .round,
+.light-card.on .light-toggle-icon,
+.light-card.on .light-state b,
+.switch-card.on .round,
+.switch-card.on .light-toggle-icon,
+.switch-card.on .light-state b { color: var(--accent); }
+.light-card.on .light-heading small,
+.switch-card.on .light-heading small { color: var(--on-surface); }
 .summary-row { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap-4); }
 .pulse-row { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap-4); }
 .pulse-card { display: flex; min-height: 4.5rem; align-items: center; gap: var(--gap-3); padding: var(--gap-3) var(--gap-4); }
@@ -385,7 +395,7 @@ header { position: relative; min-height: 12rem; }
 .sonos-workspace.sonora-ready .sonos-curtain { opacity: 0; }
 .diagnostic-control { width: 100%; color: inherit; text-align: start; cursor: pointer; }
 .diagnostic-hint { display: block; color: var(--on-muted); font-size: .78rem; }
-.lights-workspace { display: grid; height: calc(100vh - 15rem); min-height: 0; grid-template-rows: repeat(2, minmax(0, 1fr)); gap: var(--gap-4); overflow: hidden; }
+.lights-workspace { display: grid; height: calc(100vh - 15rem); min-height: 0; grid-template-rows: minmax(0, 3fr) minmax(0, 1fr); gap: var(--gap-4); overflow: hidden; }
 .device-section { display: grid; min-height: 0; grid-template-rows: auto minmax(0, 1fr); gap: var(--gap-2); }
 .device-section-heading { display: flex; align-items: baseline; justify-content: space-between; padding-inline: var(--gap-1); }
 .device-section-heading h2 { margin: 0; font-size: 1.15rem; }
@@ -401,7 +411,6 @@ header { position: relative; min-height: 12rem; }
 .light-state { display: flex; align-items: end; justify-content: space-between; text-transform: capitalize; }
 .light-state b { font-size: 2.5rem; }
 .light-card input { width: 100%; min-height: 2.75rem; accent-color: var(--accent); }
-.switch-card.on { color: var(--accent); border-color: oklch(0.79 0.15 82 / 0.65); background: oklch(0.79 0.15 82 / 0.14); }
 .switch-card .light-state b { font-size: 1.25rem; }
 .compact-empty { min-height: 0; grid-column: 1 / -1; }
 .diagnostics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }

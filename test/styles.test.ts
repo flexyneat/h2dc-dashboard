@@ -9,6 +9,13 @@ describe("CARD_STYLES", () => {
     expect(CARD_STYLES).toContain('[data-density="compact"]');
     expect(CARD_STYLES).toContain('[data-kiosk-profile="tablet_portrait"]');
   });
+
+  it("keeps active device cards legible over photographic backgrounds", () => {
+    expect(CARD_STYLES).toContain("--surface-active:");
+    expect(CARD_STYLES).toContain(".control.on, .light-card.on, .switch-card.on");
+    expect(CARD_STYLES).toContain("color: var(--on-surface); border-color: var(--accent); background: var(--surface-active)");
+    expect(CARD_STYLES).toContain(".light-card.on .light-toggle-icon");
+  });
   it("retains keyboard focus and minimum touch targets", () => {
     expect(CARD_STYLES).toContain(":focus-visible");
     expect(CARD_STYLES).toContain("min-width: 2.75rem");
