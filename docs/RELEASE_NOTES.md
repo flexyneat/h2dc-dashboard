@@ -1,6 +1,6 @@
-# H2DC Dashboard v1.1.0
+# H2DC Dashboard v1.2.0
 
-H2DC Dashboard v1.1.0 is the concise-lighting and Marketplace-installation release of the commissioned wall-tablet interface.
+H2DC Dashboard v1.2.0 adds portable configuration, capability-aware navigation, House Pulse summaries, restored backgrounds, and faster Security loading to the commissioned wall-tablet interface.
 
 ## Completed work
 
@@ -14,6 +14,10 @@ H2DC Dashboard v1.1.0 is the concise-lighting and Marketplace-installation relea
 - Added media artwork, grouped room controls, and an isolated Sonora embed that prevents the external controller from replacing the H2DC shell.
 - Added day and night backgrounds, weather-aware presentation, contextual home summaries, and reduced-motion behavior.
 - Added a visual editor, schema validation, room configuration, onboarding guidance, and actionable empty and error states.
+- Added configurable labels and visibility for all eight routes, with automatic Energy hiding when PowerFlo is unavailable.
+- Added portable House Pulse summaries and room-based climate configuration.
+- Restored verified day/night backgrounds across every route.
+- Prioritized medium-channel Security thumbnails while retaining medium-channel popup streams.
 - Added reusable Home Assistant blueprints, clean-install, migration, upgrade, rollback, and acceptance documentation.
 - Added immutable GitHub release assets, SHA-256 checksums, artifact provenance attestation, recognized repository topics, a README product image, and HACS validation workflows.
 - Verified strict TypeScript, the complete automated test suite, registration isolation, production builds, the HACS artifact contract, and a zero-vulnerability production dependency audit.

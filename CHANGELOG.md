@@ -8,6 +8,7 @@
 - Improved Security startup performance with medium-channel thumbnails, first-row prioritization, deferred later rows, and medium-channel popup streams.
 - Preserved concise friendly names, domain-correct controls, accessible interactions, and the commissioned liquid-glass visual language.
 - Verified strict TypeScript, 164 source tests plus one intentional environment skip, both standalone bundles, registration isolation, deterministic release packaging, and live production read-back.
+- Made release publishing idempotent and added an explicit tag-based recovery path so existing releases can receive verified HACS assets without being recreated.
 
 ## Unreleased — Friendly-name consistency
 
