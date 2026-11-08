@@ -13,6 +13,15 @@ export const H2DC_VIEWS = [
 /** A stable route rendered by the H2DC custom card. */
 export type H2DCView = (typeof H2DC_VIEWS)[number];
 
+/** Operator-controlled label and visibility for one stable dashboard route. */
+export interface NavigationTabConfig {
+  readonly label: string;
+  readonly visible: boolean;
+}
+
+/** Complete navigation configuration keyed by stable dashboard route. */
+export type NavigationConfig = Readonly<Record<H2DCView, NavigationTabConfig>>;
+
 /** The meaning of positive battery telemetry for an installation. */
 export type BatteryPositiveConvention = "charge" | "discharge";
 
@@ -252,6 +261,7 @@ export interface H2DCConfig {
   readonly backgrounds: BackgroundConfig;
   readonly rooms: readonly RoomDefinition[];
   readonly presentation: PresentationConfig;
+  readonly navigation: NavigationConfig;
 }
 
 /** A configuration boundary that either yields parsed data or actionable issues. */

@@ -1,7 +1,8 @@
 import { resolveHomeContext } from "./contextual-home";
-import type { CameraEntity, H2DCConfig, H2DCView } from "./domain";
+import { H2DC_VIEWS, type CameraEntity, type H2DCConfig, type H2DCView } from "./domain";
 import { lightCapabilities } from "./entity-capabilities";
 import { escapeHtml, readEntity, readNumericState, type HassAttributeValue, type HassEntity, type HomeAssistant } from "./home-assistant";
+import { projectHousePulse, type HousePulseCategory } from "./house-pulse";
 import { resolveCurrentMedia, resolveHomeAssistantArtwork, type MediaArtwork } from "./media-artwork";
 import { derivePowerFlow, formatPower, type FlowDirection } from "./power-flow";
 import { formatDecimal, formatNumericAttribute, formatNumericState } from "./value-format";
@@ -13,6 +14,7 @@ export interface RenderContext {
   readonly now: Date;
   readonly reducedMotion: boolean;
   readonly mediaArtwork?: MediaArtwork;
+  readonly powerFloAvailable?: boolean;
 }
 
 /** Returns an escaped Material Design icon element. */
@@ -77,17 +79,19 @@ function viewPath(config: H2DCConfig, view: H2DCView): string {
 
 /** Renders the persistent eight-route navigation and context header. */
 function header(context: RenderContext, eyebrow: string, summary: string): string {
-  const tabs: readonly (readonly [H2DCView, string])[] = [
-    ["home", "Home"], ["security", "Security"], ["energy", "Energy"], ["climate", "Climate"],
-    ["lights", "Lights"], ["media", "Media"], ["sonos", "Sonos"], ["diagnostics", "System"],
-  ];
+  const tabs = H2DC_VIEWS.filter((view) => context.config.navigation[view].visible && (view !== "energy" || context.powerFloAvailable !== false));
   const date = new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long" }).format(context.now);
   const dateHeading = context.config.view === "home" ? `<h1>${escapeHtml(date)}</h1>` : "";
   if (context.config.view === "home") eyebrow = resolveHomeContext(context.config, context.hass, context.now).eyebrow;
   const pageSubheading = context.config.view === "home"
     ? eyebrow === "Home overview" ? "" : `<span>${escapeHtml(eyebrow)}</span>`
     : `<h1 class="page-subheading">${escapeHtml(eyebrow)}</h1>`;
-  return `<header><div class="brand">H2DC</div><nav class="nav" aria-label="Dashboard views">${tabs.map(([path, label]) => `<a class="${context.config.view === path ? "active" : ""}" href="${escapeHtml(viewPath(context.config, path))}">${label}</a>`).join("")}</nav><div class="tools">${icon("mdi:magnify")}<a href="?h2dc_admin=1" aria-label="Show Home Assistant controls">${icon("mdi:cog-outline")}</a></div><div class="intro">${pageSubheading}${dateHeading}<p>${escapeHtml(summary)}</p></div></header>`;
+  return `<header><div class="brand">H2DC</div><nav class="nav" aria-label="Dashboard views">${tabs.map((path) => `<a class="${context.config.view === path ? "active" : ""}" href="${escapeHtml(viewPath(context.config, path))}">${escapeHtml(context.config.navigation[path].label)}</a>`).join("")}</nav><div class="tools">${icon("mdi:magnify")}<a href="?h2dc_admin=1" aria-label="Show Home Assistant controls">${icon("mdi:cog-outline")}</a></div><div class="intro">${pageSubheading}${dateHeading}<p>${escapeHtml(summary)}</p></div></header>`;
+}
+
+/** Renders a safe route-level explanation when the optional PowerFlo dependency is absent. */
+function renderEnergyDisabled(context: RenderContext): string {
+  return `${header(context, "Energy unavailable", "Install PowerFlo to enable live energy analysis")}<main class="page-grid"><section class="glass dependency" role="status"><h2>Energy is disabled</h2><p>H2DC detected that the PowerFlo custom card is not installed. Install PowerFlo and reload Home Assistant to enable this tab automatically.</p></section></main>`;
 }
 
 /** Maps Home Assistant weather conditions to Material Design icons. */
@@ -137,9 +141,18 @@ function energyFlow(context: RenderContext, interactive = false): string {
   return `<section class="glass flow"><div class="card-title">Home energy ${interactive ? `<button class="card-link" data-action="energy-detail" data-detail="inverter" aria-label="Open inverter details">›</button>` : `<a href="${escapeHtml(viewPath(context.config, "energy"))}" aria-label="Open Energy">›</a>`}</div><div class="topology"><svg viewBox="0 0 600 440" role="img" aria-label="${escapeHtml(flow.summary)}"><path class="track ${supplied ? "active" : ""}" d="M300 196 L300 142"/><path class="track ${activeFlow(flow.solar) ? "active" : ""}" d="M100 256 Q100 226 130 226 L270 226 Q300 226 300 196"/><path class="track ${activeFlow(flow.battery) ? "active" : ""}" d="M300 196 L300 256"/><path class="track ${activeFlow(flow.grid) ? "active" : ""}" d="M300 196 Q300 226 330 226 L470 226 Q500 226 500 256"/>${flowArrow(paths.trunk, supplied, "0s", context.reducedMotion)}${flowArrow(paths.solar, activeFlow(flow.solar), "-.6s", context.reducedMotion)}${flowArrow(paths.battery, activeFlow(flow.battery), "-1.2s", context.reducedMotion)}${flowArrow(paths.grid, activeFlow(flow.grid), "-1.6s", context.reducedMotion)}${batteryStatus}<g class="home-node" transform="translate(300 92)"><circle r="54"/><foreignObject x="-28" y="-28" width="56" height="56">${destination}</foreignObject></g><g class="home-reading" transform="translate(370 78)"><text>Home load</text><text class="value" y="34">${escapeHtml(formatPower(flow.loadPower))}</text></g>${sourceNode(100, "solar", "mdi:solar-power", "Solar", formatPower(flow.solarPower), flow.solar)}${sourceNode(300, "battery", "mdi:battery-medium", "Battery", flow.batterySoc.status === "available" ? `${formatDecimal(flow.batterySoc.value)}%` : "—", flow.battery)}${sourceNode(500, "grid", "mdi:transmission-tower", "Grid", flow.gridAvailability === "unavailable" ? "Disconnected" : formatPower(flow.gridPower), flow.grid)}</svg></div><p class="flow-summary">${escapeHtml(flow.summary)}</p></section>`;
 }
 
-/** Renders the cool/off control and bounded target-temperature stepper. */
-function coolingControl(context: RenderContext): string {
-  const climateId = context.config.entities.climate;
+/** Resolves a room temperature from the HVAC controller before consulting a fallback sensor. */
+function roomTemperatureText(context: RenderContext, climateId: string, fallbackSensorId?: string): string {
+  const reading = readEntity(context.hass, climateId);
+  if (reading.status === "available") {
+    const currentTemperature = reading.entity.attributes.current_temperature;
+    if (typeof currentTemperature === "number" && Number.isFinite(currentTemperature)) return formatDecimal(currentTemperature);
+  }
+  return fallbackSensorId === undefined ? "—" : numericText(context, fallbackSensorId);
+}
+
+/** Renders the cool/off control and bounded target-temperature stepper for one HVAC entity. */
+function coolingControl(context: RenderContext, climateId = context.config.entities.climate): string {
   const reading = readEntity(context.hass, climateId);
   const climate = reading.status === "available" ? reading.entity : undefined;
   const cooling = climate?.state === "cool";
@@ -170,39 +183,10 @@ function summaryCard(context: RenderContext, mdi: string, label: string, value: 
   return `<a class="glass summary" href="${escapeHtml(viewPath(context.config, view))}" aria-label="Open ${escapeHtml(label)}: ${escapeHtml(value)}"><span class="round">${icon(mdi)}</span><div><strong>${escapeHtml(label)}</strong><small>${escapeHtml(value)}</small></div><b aria-hidden="true">&rsaquo;</b></a>`;
 }
 
-/** Returns a concise state summary for one House Pulse category. */
-function pulseValue(context: RenderContext, category: "access" | "presence" | "comfort" | "attention"): string {
-  const items = context.config.entities.housePulse[category];
-  if (items.length === 0) return "Not configured";
-  const available = items.flatMap((item) => {
-    const reading = readEntity(context.hass, item.entity);
-    return reading.status === "available" ? [{ item, entity: reading.entity }] : [];
-  });
-  const unavailableCount = items.length - available.length;
-  if (category === "comfort" && available.length === 0) return "Comfort telemetry unavailable";
-  if (unavailableCount > 0) return `${unavailableCount} source${unavailableCount === 1 ? "" : "s"} unavailable`;
-  if (category === "comfort") {
-    const first = available[0];
-    if (first === undefined) return "Comfort telemetry unavailable";
-    const numericState = Number(first.entity.state);
-    if (!Number.isFinite(numericState)) return "Comfort telemetry unavailable";
-    const unit = typeof first.entity.attributes.unit_of_measurement === "string" ? first.entity.attributes.unit_of_measurement : "";
-    return `${first.item.label} ${formatDecimal(numericState)}${unit}`;
-  }
-  const active = available.filter(({ entity }) => {
-    if (category === "attention") return !["0", "off", "ok", "none", "clear"].includes(entity.state.toLowerCase());
-    if (category === "access") return ["on", "open", "unlocked"].includes(entity.state.toLowerCase());
-    return ["on", "home", "occupied", "present"].includes(entity.state.toLowerCase());
-  });
-  if (category === "access") return active.length === 0 ? "All secure" : `${active.length} open or unlocked`;
-  if (category === "presence") return active.length === 0 ? "No presence" : active.length === 1 ? `${active[0]?.item.label ?? "Area"} occupied` : `${active.length} areas occupied`;
-  return active.length === 0 ? "No issues" : active.length === 1 ? `${active[0]?.item.label ?? "Item"} needs attention` : `${active.length} items need attention`;
-}
-
 /** Renders one compact House Pulse status card. */
-function pulseCard(context: RenderContext, category: "access" | "presence" | "comfort" | "attention", mdi: string, label: string): string {
-  const value = pulseValue(context, category);
-  return `<section class="glass pulse-card" aria-label="${escapeHtml(label)}: ${escapeHtml(value)}"><span class="pulse-icon">${icon(mdi)}</span><div><strong>${escapeHtml(label)}</strong><small>${escapeHtml(value)}</small></div></section>`;
+function pulseCard(context: RenderContext, category: HousePulseCategory, mdi: string, label: string): string {
+  const projection = projectHousePulse(context.config, context.hass, category);
+  return `<button class="glass pulse-card" data-action="pulse-detail" data-category="${category}" aria-label="Open ${escapeHtml(label)} details: ${escapeHtml(projection.summary)}"><span class="pulse-icon">${icon(mdi)}</span><div><strong>${escapeHtml(label)}</strong><small>${escapeHtml(projection.summary)}</small></div><b aria-hidden="true">&rsaquo;</b></button>`;
 }
 
 /** Renders the commissioned Home composition. */
@@ -220,8 +204,9 @@ function renderHome(context: RenderContext): string {
   const mediaId = currentMedia?.entityId ?? entities.media.primary;
   const media = currentMedia?.entity ?? (mediaId === undefined ? undefined : context.hass.states[mediaId]);
   const climateState = stateText(context, entities.climate, "off");
+  const livingRoomTemperature = roomTemperatureText(context, entities.climate, entities.roomTemperature);
   const nearby = entities.nearby.map((item) => nearbyControl(context, item.entity, item.label, item.icon)).join("");
-  return `${header(context, "Home overview", `Alarm ${alarm} / ${lightsOn} selected lights on`)}<main class="home-grid"><div class="left-stack"><section class="glass clock"><strong>${escapeHtml(time)}</strong></section><section class="glass weather weather-${escapeHtml(condition.replace(/[^a-z-]/gu, ""))}"><div>${icon(weatherIcon(condition))}</div><div><strong>${celsius(escapeHtml(temperature))}</strong><span>${escapeHtml(condition.replaceAll("_", " "))}</span><small>Humidity ${escapeHtml(humidity)}%</small></div></section></div>${energyFlow(context)}<div class="right-stack"><section class="glass compact"><div class="card-title">Climate <a href="${escapeHtml(viewPath(context.config, "climate"))}" aria-label="Open Climate">&rsaquo;</a></div><div class="climate-body"><div class="climate-reading"><strong>${celsius(numericText(context, entities.roomTemperature))}</strong><small>Living room</small></div>${coolingControl(context)}</div></section><section class="glass compact"><div class="card-title">Now playing <a href="${escapeHtml(viewPath(context.config, "media"))}" aria-label="Open Media">&rsaquo;</a></div><div class="media-row">${mediaArtwork(context, true)}<div><strong>${escapeHtml(stringAttribute(media, "media_title", "No media playing"))}</strong><small>${escapeHtml(stringAttribute(media, "media_artist", "Surround speakers"))}</small></div>${mediaId === undefined ? "" : `<button class="media-action" data-action="media" data-entity="${escapeHtml(mediaId)}" data-command="media_play_pause" aria-label="Play or pause" ${media === undefined ? "disabled" : ""}>${icon("mdi:play-pause")}</button>`}</div></section><section class="glass controls"><div class="card-title">Nearby controls</div>${nearby || `<p>No nearby controls configured.</p>`}</section></div><div class="summary-row">${summaryCard(context, "mdi:shield-home", "Security", `Alarm ${alarm}`, "security")}${summaryCard(context, "mdi:lightbulb-group", "Lights", `${lightsOn} on`, "lights")}${summaryCard(context, "mdi:thermometer", "Climate", `${numericText(context, entities.roomTemperature)} degrees Celsius / ${climateState}`, "climate")}${summaryCard(context, "mdi:solar-power", "Solar", formatPower(readNumericState(context.hass, entities.energy.solar)), "energy")}</div><div class="pulse-row">${pulseCard(context, "access", "mdi:door-closed-lock", "Access")}${pulseCard(context, "presence", "mdi:motion-sensor", "Presence")}${pulseCard(context, "comfort", "mdi:home-thermometer-outline", "Comfort")}${pulseCard(context, "attention", "mdi:alert-circle-outline", "Attention")}</div></main>`;
+  return `${header(context, "Home overview", `Alarm ${alarm} / ${lightsOn} selected lights on`)}<main class="home-grid"><div class="left-stack"><section class="glass clock"><strong>${escapeHtml(time)}</strong></section><section class="glass weather weather-${escapeHtml(condition.replace(/[^a-z-]/gu, ""))}"><div>${icon(weatherIcon(condition))}</div><div><strong>${celsius(escapeHtml(temperature))}</strong><span>${escapeHtml(condition.replaceAll("_", " "))}</span><small>Humidity ${escapeHtml(humidity)}%</small></div></section></div>${energyFlow(context)}<div class="right-stack"><section class="glass compact"><div class="card-title">Climate <a href="${escapeHtml(viewPath(context.config, "climate"))}" aria-label="Open Climate">&rsaquo;</a></div><div class="climate-body"><div class="climate-reading"><strong>${celsius(livingRoomTemperature)}</strong><small>Living room</small></div>${coolingControl(context)}</div></section><section class="glass compact"><div class="card-title">Now playing <a href="${escapeHtml(viewPath(context.config, "media"))}" aria-label="Open Media">&rsaquo;</a></div><div class="media-row">${mediaArtwork(context, true)}<div><strong>${escapeHtml(stringAttribute(media, "media_title", "No media playing"))}</strong><small>${escapeHtml(stringAttribute(media, "media_artist", "Surround speakers"))}</small></div>${mediaId === undefined ? "" : `<button class="media-action" data-action="media" data-entity="${escapeHtml(mediaId)}" data-command="media_play_pause" aria-label="Play or pause" ${media === undefined ? "disabled" : ""}>${icon("mdi:play-pause")}</button>`}</div></section><section class="glass controls"><div class="card-title">Nearby controls</div>${nearby || `<p>No nearby controls configured.</p>`}</section></div><div class="summary-row">${summaryCard(context, "mdi:shield-home", "Security", `Alarm ${alarm}`, "security")}${summaryCard(context, "mdi:lightbulb-group", "Lights", `${lightsOn} on`, "lights")}${summaryCard(context, "mdi:thermometer", "Climate", `${livingRoomTemperature} degrees Celsius / ${climateState}`, "climate")}${summaryCard(context, "mdi:solar-power", "Solar", formatPower(readNumericState(context.hass, entities.energy.solar)), "energy")}</div><div class="pulse-row">${pulseCard(context, "access", "mdi:door-closed-lock", "Access")}${pulseCard(context, "presence", "mdi:motion-sensor", "Presence")}${pulseCard(context, "comfort", "mdi:home-thermometer-outline", "Comfort")}${pulseCard(context, "attention", "mdi:alert-circle-outline", "Attention")}</div></main>`;
 }
 
 /** Validates a camera image path before placing it in an image source. */
@@ -230,16 +215,30 @@ function safeImageUrl(value: unknown, entityId: string): string {
   return `/api/camera_proxy/${encodeURIComponent(entityId)}`;
 }
 
-/** Renders one snapshot tile while keeping medium-quality playback an explicit separate contract. */
-function cameraTile(context: RenderContext, camera: CameraEntity): string {
+/**
+ * Renders one camera tile with a bandwidth-conscious snapshot source.
+ *
+ * @param context - Current renderer state and Home Assistant entities.
+ * @param camera - High-resolution camera plus its optional medium stream entity.
+ * @param index - Visual tile index used to prioritize the first visible row.
+ * @returns Accessible camera tile markup.
+ */
+function cameraTile(context: RenderContext, camera: CameraEntity, index: number): string {
   const reading = readEntity(context.hass, camera.entity);
   const label = escapeHtml(camera.label);
   if (reading.status === "unavailable") return `<figure class="camera unavailable"><div class="camera-missing">${icon("mdi:camera-off-outline")}<span>Camera unavailable</span></div><span class="camera-caption"><strong>${label}</strong><span>Offline</span></span></figure>`;
-  const source = safeImageUrl(attribute(reading.entity, "entity_picture"), camera.entity);
   const medium = camera.mediumStreamEntity;
-  const mediumAvailable = medium !== undefined && readEntity(context.hass, medium).status === "available";
+  const mediumReading = medium === undefined ? undefined : readEntity(context.hass, medium);
+  const mediumAvailable = mediumReading?.status === "available";
+  // Prefer the medium channel for thumbnails so nine simultaneous snapshots do not saturate the tablet.
+  const thumbnailReading = mediumAvailable ? mediumReading : reading;
+  const thumbnailEntity = mediumAvailable && medium !== undefined ? medium : camera.entity;
+  const source = safeImageUrl(attribute(thumbnailReading?.entity, "entity_picture"), thumbnailEntity);
   const status = medium === undefined ? "Medium stream not configured" : mediumAvailable ? "Open medium stream" : "Medium stream unavailable";
-  const content = `<img src="${escapeHtml(source)}" alt="${label} camera" loading="lazy"><span class="camera-caption"><strong>${label}</strong><span>${escapeHtml(status)}</span></span>`;
+  // Eagerly fetch the first row; defer the remaining six until the browser has spare capacity.
+  const loading = index < 3 ? "eager" : "lazy";
+  const priority = index < 3 ? "high" : "low";
+  const content = `<img src="${escapeHtml(source)}" alt="${label} camera" loading="${loading}" fetchpriority="${priority}" decoding="async"><span class="camera-caption"><strong>${label}</strong><span>${escapeHtml(status)}</span></span>`;
   if (!mediumAvailable || medium === undefined) return `<figure class="camera unavailable-stream" aria-label="${label}: ${escapeHtml(status)}">${content}</figure>`;
   return `<button class="camera camera-action" data-action="camera-detail" data-entity="${escapeHtml(medium)}" data-label="${label}" aria-label="Open ${label} medium-quality live stream">${content}</button>`;
 }
@@ -256,7 +255,7 @@ function renderSecurity(context: RenderContext): string {
     : key === "Disarm"
       ? `<button class="keypad-key keypad-submit" data-action="alarm-code-submit" ${alarmDisabled}>Disarm</button>`
       : `<button class="keypad-key" data-action="alarm-code-digit" data-digit="${key}" aria-label="Alarm digit ${key}">${key}</button>`).join("");
-  return `${header(context, "Security overview", `Alarm ${alarm} / ${cameras.length} configured zones`)}<main class="page-grid security-grid"><aside class="alarm-stack"><section class="glass alarm"><div class="card-title">Alarm system</div><div class="alarm-status"><span class="alarm-ring">${icon("mdi:shield-outline")}</span><strong>${escapeHtml(alarm)}</strong></div><div class="alarm-actions"><button class="alarm-action" data-action="alarm" data-entity="${alarmId}" data-command="alarm_arm_home" ${alarmDisabled}>${icon("mdi:home-outline")}Home</button><button class="alarm-action" data-action="alarm" data-entity="${alarmId}" data-command="alarm_arm_away" ${alarmDisabled}>${icon("mdi:walk")}Away</button><button class="alarm-action" data-action="alarm" data-entity="${alarmId}" data-command="alarm_arm_night" ${alarmDisabled}>${icon("mdi:weather-night")}Night</button></div></section><section class="glass alarm-keypad"><div class="card-title">Alarm keypad</div><output class="keypad-display" data-alarm-code-display aria-live="polite" aria-label="No alarm code entered">Enter code</output><div class="keypad-grid">${keypad}</div></section></aside><section class="camera-grid">${cameras.length === 0 ? `<section class="glass empty"><div><h2>No cameras configured</h2><p>Add camera entities in the visual editor to populate this view.</p></div></section>` : cameras.map((item) => cameraTile(context, item)).join("")}</section></main>`;
+  return `${header(context, "Security overview", `Alarm ${alarm} / ${cameras.length} configured zones`)}<main class="page-grid security-grid"><aside class="alarm-stack"><section class="glass alarm"><div class="card-title">Alarm system</div><div class="alarm-status"><span class="alarm-ring">${icon("mdi:shield-outline")}</span><strong>${escapeHtml(alarm)}</strong></div><div class="alarm-actions"><button class="alarm-action" data-action="alarm" data-entity="${alarmId}" data-command="alarm_arm_home" ${alarmDisabled}>${icon("mdi:home-outline")}Home</button><button class="alarm-action" data-action="alarm" data-entity="${alarmId}" data-command="alarm_arm_away" ${alarmDisabled}>${icon("mdi:walk")}Away</button><button class="alarm-action" data-action="alarm" data-entity="${alarmId}" data-command="alarm_arm_night" ${alarmDisabled}>${icon("mdi:weather-night")}Night</button></div></section><section class="glass alarm-keypad"><div class="card-title">Alarm keypad</div><output class="keypad-display" data-alarm-code-display aria-live="polite" aria-label="No alarm code entered">Enter code</output><div class="keypad-grid">${keypad}</div></section></aside><section class="camera-grid">${cameras.length === 0 ? `<section class="glass empty"><div><h2>No cameras configured</h2><p>Add camera entities in the visual editor to populate this view.</p></div></section>` : cameras.map((item, index) => cameraTile(context, item, index)).join("")}</section></main>`;
 }
 
 /** Renders the detailed Energy view. */
@@ -274,6 +273,12 @@ function temperatureRow(context: RenderContext, entityId: string, room: string, 
   return `<section class="glass temp-row"><span class="round">${icon(mdi)}</span><div><small>${escapeHtml(room)}</small><strong>${celsius(numericText(context, entityId))}</strong></div><b aria-hidden="true">›</b></section>`;
 }
 
+/** Renders one room HVAC card with authoritative controller temperature and optional sensor fallback. */
+function thermostatCard(context: RenderContext, climateId: string, room: string, fallbackSensorId?: string): string {
+  const temperature = roomTemperatureText(context, climateId, fallbackSensorId);
+  return `<section class="glass thermostat"><div class="card-title">${escapeHtml(room)} air conditioning</div><div class="climate-reading"><strong>${celsius(temperature)}</strong><small>${escapeHtml(room)}</small></div>${coolingControl(context, climateId)}</section>`;
+}
+
 /** Renders the detailed Climate view. */
 function renderClimate(context: RenderContext): string {
   const entities = context.config.entities;
@@ -283,7 +288,15 @@ function renderClimate(context: RenderContext): string {
   const condition = weather?.state ?? "unavailable";
   const conditionClass = condition.replace(/[^a-z-]/gu, "") || "unavailable";
   const outsideTemperature = weather === undefined ? "—" : formatNumericAttribute(weather, "temperature");
-  return `${header(context, "Climate overview", `Air conditioning ${stateText(context, entities.climate, "off")} · Living room ${numericText(context, entities.roomTemperature)} degrees Celsius`)}<main class="page-grid climate-grid"><div class="temps">${temperatures || `<section class="glass empty"><p>No room temperature sensors configured.</p></section>`}</div><section class="glass thermostat"><div class="card-title">Air conditioning</div><div class="climate-reading"><strong>${celsius(numericText(context, entities.roomTemperature))}</strong><small>Living room</small></div>${coolingControl(context)}</section><div class="climate-right"><section class="glass outside weather-surface weather-${escapeHtml(conditionClass)}" data-weather-condition="${escapeHtml(conditionClass)}">${icon(weatherIcon(condition))}<div><small>Outside</small><strong>${celsius(outsideTemperature)}</strong><span>${escapeHtml(condition.replaceAll("_", " "))}</span></div></section></div></main>`;
+  const configuredClimateRooms = context.config.rooms.filter((room) => room.climate !== undefined);
+  const climateRooms = configuredClimateRooms.length > 0
+    ? configuredClimateRooms
+    : [{ id: "living-room", name: "Living room", climate: entities.climate, temperature: entities.roomTemperature, humidity: undefined, occupancy: [], lights: [], switches: [], media: [] }];
+  const thermostats = climateRooms.map((room) => thermostatCard(context, room.climate ?? entities.climate, room.name, room.temperature)).join("");
+  const primaryRoom = climateRooms[0];
+  const primaryClimateId = primaryRoom?.climate ?? entities.climate;
+  const primaryFallbackId = primaryRoom?.temperature ?? entities.roomTemperature;
+  return `${header(context, "Climate overview", `Air conditioning ${stateText(context, primaryClimateId, "off")} · ${escapeHtml(primaryRoom?.name ?? "Living room")} ${roomTemperatureText(context, primaryClimateId, primaryFallbackId)} degrees Celsius`)}<main class="page-grid climate-grid"><div class="temps">${temperatures || `<section class="glass empty"><p>No supporting room sensors configured.</p></section>`}</div><div class="thermostats">${thermostats}</div><div class="climate-right"><section class="glass outside weather-surface weather-${escapeHtml(conditionClass)}" data-weather-condition="${escapeHtml(conditionClass)}">${icon(weatherIcon(condition))}<div><small>Outside</small><strong>${celsius(outsideTemperature)}</strong><span>${escapeHtml(condition.replaceAll("_", " "))}</span></div></section></div></main>`;
 }
 
 /** Resolves concise, non-repeating household copy without exposing an entity ID. */
@@ -409,7 +422,7 @@ export function renderView(context: RenderContext): string {
   switch (context.config.view) {
     case "home": return renderHome(context);
     case "security": return renderSecurity(context);
-    case "energy": return renderEnergy(context);
+    case "energy": return context.powerFloAvailable === false ? renderEnergyDisabled(context) : renderEnergy(context);
     case "climate": return renderClimate(context);
     case "lights": return renderLights(context);
     case "media": return renderMedia(context);

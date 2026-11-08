@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0 — 2026-11-08
+
+- Added configurable navigation labels and visibility for all eight dashboard routes, including capability-aware Energy visibility when PowerFlo is unavailable.
+- Added portable House Pulse summaries, room-based climate configuration, and upgrade-safe configuration recovery for existing installations.
+- Restored verified day/night background assets across every route.
+- Improved Security startup performance with medium-channel thumbnails, first-row prioritization, deferred later rows, and medium-channel popup streams.
+- Preserved concise friendly names, domain-correct controls, accessible interactions, and the commissioned liquid-glass visual language.
+- Verified strict TypeScript, 164 source tests plus one intentional environment skip, both standalone bundles, registration isolation, deterministic release packaging, and live production read-back.
+
 ## Unreleased — Friendly-name consistency
 
 - Kept `Lounge Lights` as the grouped card for `light.lounge_lights` and `light.tv_console`, while retaining `Lounge Switch` as a standalone switch card.
@@ -247,3 +256,18 @@
 - Added the live `media_player.roam_2` mapping to all eight preview views so Media can render Sonos Roam under `Common areas`.
 - Cleared Fully Kiosk's browser cache and reloaded `/h2dc-preview/home`.
 - Verified the commissioned production resource remains `/local/h2dc/h2dc-dashboard-card.js?v=1.0.17` and its dashboard hash remains `14fe10b827338f81`.
+## 2026-11-08 — Configuration recovery and optional tabs
+
+- Repaired the production dashboard's mismatched custom-card tag and verified all eight routes after the write.
+- Added configurable labels and visibility for Home, Security, Energy, Climate, Lights, Media, Sonos, and System.
+- Made the Energy route capability-aware: it is removed from navigation when PowerFlo is unavailable and direct navigation receives a safe disabled state.
+- Added schema, editor, rendering, and late-resource-registration regression coverage.
+- Deployed and read back production bundle `2026.11.08.2`; the verified dashboard hash is `9e3ff7dd25c3ba0a`.
+
+## 2026-11-08 — Background and camera-load recovery
+
+- Restored preview background references to the existing H2DC day/night assets.
+- Switched Security thumbnails from high-resolution snapshots to their configured medium channels.
+- Prioritized first-row camera images and deferred later rows to reduce initial contention without changing popup stream quality.
+- Added regression coverage for medium thumbnail selection and eager/lazy loading priority.
+- Installed isolated preview cache key `2026.11.08.3` after the complete verification gate passed.

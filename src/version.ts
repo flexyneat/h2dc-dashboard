@@ -1,2 +1,2 @@
 /** Package version shown in the Home Assistant browser console and release diagnostics. */
-export const H2DC_PACKAGE_VERSION = "1.1.0";
+export const H2DC_PACKAGE_VERSION = "1.2.0";

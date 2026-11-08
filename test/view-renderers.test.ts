@@ -32,6 +32,10 @@ function configFor(view: H2DCView): H2DCConfig {
         attention: [{ entity: "sensor.low_battery_count", label: "Low batteries", icon: "mdi:battery-alert" }],
       },
     },
+    rooms: [
+      { id: "living-room", name: "Living room", temperature: "sensor.room_temperature", occupancy: [], lights: [], switches: [], media: [], climate: "climate.living_room" },
+      { id: "master-bedroom", name: "Master bedroom", temperature: "sensor.master_fallback", occupancy: [], lights: [], switches: [], media: [], climate: "climate.master_bedroom" },
+    ],
   });
   if (result.status === "invalid") throw new Error(result.issues.join("; "));
   return result.config;
@@ -43,9 +47,11 @@ function hassFixture(): { readonly hass: HomeAssistant; readonly callService: Re
   const callService = vi.fn(async () => undefined);
   return { hass: { states: {
     "alarm_control_panel.house": entity("disarmed"),
-    "climate.living_room": entity("cool", { temperature: 24, min_temp: 16, max_temp: 30 }),
+    "climate.living_room": entity("cool", { current_temperature: 23.5, temperature: 24, min_temp: 16, max_temp: 30 }),
+    "climate.master_bedroom": entity("off", { current_temperature: 25.25, temperature: 20, min_temp: 16, max_temp: 30 }),
     "weather.home": entity("partlycloudy", { temperature: 28.4, humidity: 79 }),
     "sensor.room_temperature": entity("28.4"),
+    "sensor.master_fallback": entity("27.8"),
     "light.recessed": entity("on", { friendly_name: "Recessed <lights>", brightness: 128, supported_color_modes: ["brightness"] }),
     "binary_sensor.inverter_fresh": entity("on"),
     "sensor.grid_relay": entity("1.0"),
@@ -67,6 +73,57 @@ describe("renderView", () => {
       expect(output).toContain("<main");
     }
     expect(fixture.callService).not.toHaveBeenCalled();
+  });
+
+  it("uses medium camera snapshots and prioritizes only the first visible row", () => {
+    const fixture = hassFixture();
+    const base = configFor("security");
+    const cameras = Array.from({ length: 4 }, (_, index) => ({
+      entity: `camera.high_${index + 1}`,
+      mediumStreamEntity: `camera.medium_${index + 1}`,
+      label: `Camera ${index + 1}`,
+    }));
+    const config: H2DCConfig = {
+      ...base,
+      entities: { ...base.entities, cameras },
+    };
+    const states = { ...fixture.hass.states };
+    cameras.forEach((camera, index) => {
+      states[camera.entity] = { state: "idle", attributes: { entity_picture: `/api/camera_proxy/${camera.entity}` } };
+      states[camera.mediumStreamEntity] = { state: "idle", attributes: { entity_picture: `/api/camera_proxy/${camera.mediumStreamEntity}` } };
+      expect(index).toBeGreaterThanOrEqual(0);
+    });
+    const output = renderView({ config, hass: { ...fixture.hass, states }, now: new Date(), reducedMotion: true });
+
+    expect(output).toContain('/api/camera_proxy/camera.medium_1');
+    expect(output).not.toContain('/api/camera_proxy/camera.high_1');
+    expect(output.match(/loading="eager" fetchpriority="high"/gu)).toHaveLength(3);
+    expect(output.match(/loading="lazy" fetchpriority="low"/gu)).toHaveLength(1);
+  });
+
+  it("uses configured tab labels and omits operator-hidden routes", () => {
+    const fixture = hassFixture();
+    const base = configFor("home");
+    const config: H2DCConfig = {
+      ...base,
+      navigation: {
+        ...base.navigation,
+        security: { label: "Cameras", visible: true },
+        sonos: { label: "Audio", visible: false },
+      },
+    };
+    const output = renderView({ config, hass: fixture.hass, now: new Date(), reducedMotion: true });
+    expect(output).toContain(">Cameras</a>");
+    expect(output).not.toContain(">Audio</a>");
+  });
+
+  it("automatically hides and disables Energy when PowerFlo is not installed", () => {
+    const fixture = hassFixture();
+    const home = renderView({ config: configFor("home"), hass: fixture.hass, now: new Date(), reducedMotion: true, powerFloAvailable: false });
+    const energy = renderView({ config: configFor("energy"), hass: fixture.hass, now: new Date(), reducedMotion: true, powerFloAvailable: false });
+    expect(home).not.toContain(">Energy</a>");
+    expect(energy).toContain("Energy is disabled");
+    expect(energy).not.toContain("Complete PowerFlo analysis");
   });
 
   it("renders each non-Home page label as its semantic h1 at the compact subheading scale", () => {
@@ -93,7 +150,7 @@ describe("renderView", () => {
     expect(output).toContain("All secure");
     expect(output).toContain("Living room occupied");
     expect(output).toContain("Humidity 58.40%");
-    expect(output).toContain("No issues");
+    expect(output).toContain("No low batteries");
     expect(output).toContain("10:04 AM");
     expect(output.match(/Monday, November 2/gu)).toHaveLength(1);
     expect(output).not.toMatch(/class="glass clock"[^<]*<strong>[^<]*<\/strong><span>/u);
@@ -124,6 +181,35 @@ describe("renderView", () => {
     expect(output).toContain('data-weather-condition="rainy"');
     expect(output).toContain('26.25 <span class="temperature-unit" aria-hidden="true">&deg;C</span>');
     expect(output).toContain("mdi:weather-rainy");
+  });
+
+  it("uses each HVAC current temperature as authoritative and renders both room controls", () => {
+    const fixture = hassFixture();
+    const home = renderView({ config: configFor("home"), hass: fixture.hass, now: new Date(), reducedMotion: true });
+    const climate = renderView({ config: configFor("climate"), hass: fixture.hass, now: new Date(), reducedMotion: true });
+
+    expect(home).toContain('23.50 <span class="temperature-unit"');
+    expect(home).toContain(
+      '<div class="climate-reading"><strong>23.50 <span class="temperature-unit" aria-hidden="true">&deg;C</span>',
+    );
+    expect(climate).toContain("Living room air conditioning");
+    expect(climate).toContain("Master bedroom air conditioning");
+    expect(climate).toContain('data-entity="climate.living_room"');
+    expect(climate).toContain('data-entity="climate.master_bedroom"');
+    expect(climate).toContain('25.25 <span class="temperature-unit"');
+  });
+
+  it("falls back to the supporting sensor only when HVAC room temperature is unavailable", () => {
+    const fixture = hassFixture();
+    const hass: HomeAssistant = {
+      ...fixture.hass,
+      states: {
+        ...fixture.hass.states,
+        "climate.living_room": { state: "cool", attributes: { temperature: 24, min_temp: 16, max_temp: 30 } } satisfies HassEntity,
+      },
+    };
+    const output = renderView({ config: configFor("home"), hass, now: new Date(), reducedMotion: true });
+    expect(output).toContain('28.40 <span class="temperature-unit"');
   });
 
   it("renders an explicit neutral Climate weather state instead of inventing unavailable telemetry", () => {

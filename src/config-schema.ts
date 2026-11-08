@@ -13,6 +13,7 @@ import {
   type LabelledEntity,
   type LightEntity,
   type MediaEntities,
+  type NavigationConfig,
   type KioskProfile,
   type PresentationConfig,
   type PresentationDensity,
@@ -47,6 +48,38 @@ export const PRESENTATION_DEFAULTS = {
   overlayStrength: 0.42,
   contextualHome: false,
 } as const satisfies PresentationConfig;
+
+/** Portable route labels and visibility defaults used by the editor and renderer. */
+export const NAVIGATION_DEFAULTS = {
+  home: { label: "Home", visible: true },
+  security: { label: "Security", visible: true },
+  energy: { label: "Energy", visible: true },
+  climate: { label: "Climate", visible: true },
+  lights: { label: "Lights", visible: true },
+  media: { label: "Media", visible: true },
+  sonos: { label: "Sonos", visible: true },
+  diagnostics: { label: "System", visible: true },
+} as const satisfies NavigationConfig;
+
+/** Parses editable route labels and visibility while preserving safe defaults. */
+function parseNavigation(value: unknown, issues: string[]): NavigationConfig {
+  const record = isRecord(value) ? value : {};
+  if (value !== undefined && !isRecord(value)) issues.push("navigation must be an object");
+  const navigation = Object.fromEntries(H2DC_VIEWS.map((view) => {
+    const candidate = isRecord(record[view]) ? record[view] : {};
+    if (record[view] !== undefined && !isRecord(record[view])) issues.push(`navigation.${view} must be an object`);
+    const label = candidate.label ?? NAVIGATION_DEFAULTS[view].label;
+    const visible = candidate.visible ?? NAVIGATION_DEFAULTS[view].visible;
+    if (typeof label !== "string" || !/^[A-Za-z0-9 &_-]{1,24}$/u.test(label)) issues.push(`navigation.${view}.label must be 1 to 24 safe characters`);
+    if (typeof visible !== "boolean") issues.push(`navigation.${view}.visible must be a boolean`);
+    return [view, {
+      label: typeof label === "string" ? label : NAVIGATION_DEFAULTS[view].label,
+      visible: typeof visible === "boolean" ? visible : NAVIGATION_DEFAULTS[view].visible,
+    }];
+  })) as Record<H2DCView, { readonly label: string; readonly visible: boolean }>;
+  if (!H2DC_VIEWS.some((view) => navigation[view].visible)) issues.push("navigation must keep at least one tab visible");
+  return navigation;
+}
 
 /** Tests whether an unknown boundary value is a plain object. */
 export function isRecord(value: unknown): value is Record<string, unknown> {
@@ -466,6 +499,7 @@ export function parseConfig(input: unknown): ConfigParseResult {
   const housePulse = parseHousePulse(compatibleValue(entities, "housePulse", "house_pulse"), issues);
   const rooms = parseRooms(input.rooms, issues);
   const presentation = parsePresentation(input.presentation, issues);
+  const navigation = parseNavigation(input.navigation, issues);
   if (powerFlo.flowReleaseW > flowThresholdW) issues.push("powerflo.flow_release_w must not exceed flow_threshold_w");
 
   if (issues.length > 0 || view === undefined || !isEntityId(alarm) || !isEntityId(climate) || !isEntityId(weather) || !isEntityId(roomTemperature)) {
@@ -500,6 +534,7 @@ export function parseConfig(input: unknown): ConfigParseResult {
     backgrounds,
     rooms,
     presentation,
+    navigation,
   };
   return { status: "valid", config };
 }
@@ -584,5 +619,6 @@ export function createDraftConfig(input: unknown): H2DCConfig {
     },
     rooms: parseRooms(root.rooms, []),
     presentation: parsePresentation(root.presentation, []),
+    navigation: parseNavigation(root.navigation, []),
   };
 }

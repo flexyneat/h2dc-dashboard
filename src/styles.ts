@@ -207,10 +207,21 @@ header { position: relative; min-height: 12rem; }
 .switch-card.on .light-heading small { color: var(--on-surface); }
 .summary-row { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap-4); }
 .pulse-row { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap-4); }
-.pulse-card { display: flex; min-height: 4.5rem; align-items: center; gap: var(--gap-3); padding: var(--gap-3) var(--gap-4); }
+.pulse-card { display: flex; width: 100%; min-height: 4.5rem; align-items: center; gap: var(--gap-3); padding: var(--gap-3) var(--gap-4); color: var(--on-surface); text-align: start; cursor: pointer; }
 .pulse-card div, .pulse-card strong, .pulse-card small { display: block; min-width: 0; }
 .pulse-card small { overflow: hidden; color: var(--on-muted); text-overflow: ellipsis; white-space: nowrap; }
+.pulse-card > b { margin-inline-start: auto; font-size: var(--type-subhead); font-weight: 500; }
 .pulse-icon { display: grid; width: 2.5rem; height: 2.5rem; flex: 0 0 auto; place-items: center; border: 0.0625rem solid var(--border); border-radius: var(--radius-m); color: var(--accent); }
+.pulse-dialog-frame { width: min(36rem, calc(100vw - var(--gap-8))); max-height: calc(100vh - var(--gap-8)); overflow: auto; padding: var(--gap-6); border: 0.0625rem solid var(--border-strong); border-radius: var(--radius-l); background: var(--surface); color: var(--on-surface); }
+.pulse-detail-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap-3); padding-block-start: var(--gap-4); }
+.pulse-detail-item { display: grid; grid-template-columns: auto minmax(0, 1fr); min-height: 4.5rem; align-items: center; gap: var(--gap-3); padding: var(--gap-3); border: 0.0625rem solid var(--border); border-radius: var(--radius-m); background: var(--surface-raised); }
+.pulse-detail-item ha-icon { color: var(--on-muted); }
+.pulse-detail-item.active ha-icon { color: var(--accent); }
+.pulse-detail-item.unavailable { border-style: dashed; }
+.pulse-detail-item span { display: grid; min-width: 0; gap: var(--gap-1); }
+.pulse-detail-item strong, .pulse-detail-item small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pulse-detail-item small, .pulse-empty { color: var(--on-muted); }
+.pulse-empty { margin: 0; }
 [data-density="compact"] { --gap-4: ${TOKENS.space[3]}; --gap-6: ${TOKENS.space[4]}; --gap-8: ${TOKENS.space[6]}; }
 [data-kiosk-profile="tablet_portrait"] .home-grid, [data-kiosk-profile="phone"] .home-grid { grid-template-columns: 1fr; grid-template-rows: auto; }
 [data-kiosk-profile="tablet_portrait"] .summary-row, [data-kiosk-profile="tablet_portrait"] .pulse-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -346,14 +357,16 @@ header { position: relative; min-height: 12rem; }
 .metric small, .metric strong { display: block; }
 .metric small { color: var(--on-muted); }
 .climate-grid { grid-template-columns: 28% 42% 1fr; }
-.temps, .climate-right { display: grid; gap: var(--gap-3); }
+.temps, .thermostats, .climate-right { display: grid; gap: var(--gap-3); min-height: 0; }
+.thermostats { grid-template-rows: repeat(2, minmax(0, 1fr)); }
 .temp-row { display: flex; align-items: center; gap: var(--gap-4); padding: var(--gap-4); }
 .temp-row div { flex: 1; }
 .temp-row small, .temp-row strong { display: block; }
 .temp-row small { color: var(--on-muted); }
-.thermostat .cooling-control { grid-template-columns: 1fr; justify-items: center; margin-block-start: var(--gap-8); }
+.thermostat { min-height: 0; }
+.thermostat .cooling-control { grid-template-columns: 1fr auto; justify-items: center; margin-block-start: var(--gap-4); }
 .thermostat .target-control { gap: var(--gap-4); }
-.thermostat .target-control strong { font-size: 3rem; }
+.thermostat .target-control strong { font-size: 2.25rem; }
 .outside { display: flex; align-items: center; gap: var(--gap-4); }
 .outside ha-icon { --mdc-icon-size: 4rem; color: var(--accent); }
 .outside small, .outside strong, .outside span { display: block; }

@@ -1,9 +1,11 @@
 node_modules/
+.DS_Store
 coverage/
 graphify-out/
 artifacts/
 docs/mockups/
 docs/SENSOR_MIGRATION.md
+docs/FP300_COMMISSIONING_PLAN.md
 dist/h2dc-dashboard-preview.js
 chatlog.md
 task-status.md

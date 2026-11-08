@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createDraftConfig, isRecord, isSafeBackgroundUrl, parseConfig } from "../src/config-schema";
+import { H2DC_VIEWS } from "../src/domain";
 
 /** Returns a complete portable test configuration with fictional entity IDs. */
 function validConfig(): Record<string, unknown> {
@@ -199,6 +200,32 @@ describe("parseConfig", () => {
     expect(draft.entities.alarm).toBe("");
     expect(draft.entities.energy.solar).toBe("");
     expect(JSON.stringify(draft)).not.toContain("sensor.dashboard");
+  });
+
+  it("parses configurable route labels and visibility", () => {
+    const input = validConfig();
+    input.navigation = {
+      security: { label: "Cameras", visible: true },
+      sonos: { label: "Audio", visible: false },
+    };
+    const result = parseConfig(input);
+    expect(result.status).toBe("valid");
+    if (result.status === "valid") {
+      expect(result.config.navigation.security.label).toBe("Cameras");
+      expect(result.config.navigation.sonos.visible).toBe(false);
+      expect(result.config.navigation.home.visible).toBe(true);
+    }
+  });
+
+  it("rejects an empty navigation and unsafe route labels", () => {
+    const input = validConfig();
+    input.navigation = Object.fromEntries(H2DC_VIEWS.map((view) => [view, { label: view === "home" ? "<script>" : view, visible: false }]));
+    const result = parseConfig(input);
+    expect(result.status).toBe("invalid");
+    if (result.status === "invalid") {
+      expect(result.issues).toContain("navigation.home.label must be 1 to 24 safe characters");
+      expect(result.issues).toContain("navigation must keep at least one tab visible");
+    }
   });
 
   it("preserves unrelated recognized fields while repairing an invalid draft", () => {

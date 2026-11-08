@@ -6,12 +6,13 @@ import type { H2DCConfig } from "./domain";
 import { ENERGY_DETAILS, renderFocusedEnergyDetail, usesCompletePowerFlo, type EnergyDetailKey } from "./energy-detail";
 import { H2DCDashboardEditor } from "./editor/h2dc-dashboard-editor";
 import { escapeHtml, type HomeAssistant } from "./home-assistant";
+import { HOUSE_PULSE_CATEGORIES, projectHousePulse, type HousePulseCategory } from "./house-pulse";
 import { restoreDialogTrigger, shouldHandleDialogClose } from "./focus-restoration";
 import { MediaArtworkSession, resolveCurrentMedia, resolveHomeAssistantArtwork } from "./media-artwork";
 import { CARD_STYLES } from "./styles";
 import { H2DC_PACKAGE_VERSION } from "./version";
 import { renderView } from "./view-renderers";
-import { mountPowerFloCard, type PowerFloCardElement } from "./powerflo-adapter";
+import { mountPowerFloCard, POWERFLO_ELEMENT_NAME, type PowerFloCardElement } from "./powerflo-adapter";
 import { dashboardConfigSignature, shouldPreserveSonoraFrame, waitForSonoraThemeReady } from "./sonora-frame";
 
 export { dispatchDashboardAction } from "./actions";
@@ -58,6 +59,11 @@ function energyDialogMarkup(): string {
 /** Returns the persistent Security dialog without starting any camera stream. */
 function securityDialogMarkup(): string {
   return `<dialog class="energy-dialog security-dialog" data-security-dialog aria-labelledby="security-dialog-title"><div class="security-dialog-frame"><header class="energy-dialog-header"><div><span>UniFi Protect &middot; medium stream</span><h2 id="security-dialog-title" data-security-dialog-title>Camera</h2><p>Live playback starts only for the selected camera and stops when this dialog closes.</p></div><button class="dialog-close" data-action="camera-detail-close" aria-label="Close live camera">&times;</button></header><section class="security-stream"><img data-security-stream alt="" hidden><p class="security-stream-status" data-security-stream-status role="status">Select a camera to begin medium-quality playback.</p></section></div></dialog>`;
+}
+
+/** Returns the persistent House Pulse dialog used by all four Home summaries. */
+function pulseDialogMarkup(): string {
+  return `<dialog class="energy-dialog pulse-dialog" data-pulse-dialog aria-labelledby="pulse-dialog-title"><div class="pulse-dialog-frame"><header class="energy-dialog-header"><div><span>House Pulse</span><h2 id="pulse-dialog-title" data-pulse-dialog-title>Home status</h2><p data-pulse-dialog-summary>Live configured household telemetry.</p></div><button class="dialog-close" data-action="pulse-detail-close" aria-label="Close House Pulse details">&times;</button></header><section class="pulse-detail-list" data-pulse-detail-list></section></div></dialog>`;
 }
 
 declare global {
@@ -120,6 +126,8 @@ export class H2DCDashboardCard extends HTMLElement {
   #energyDetail: EnergyDetailKey | undefined;
   #energyReturnTrigger: HTMLElement | undefined;
   #cameraDetail: CameraDetail | undefined;
+  #pulseDetail: HousePulseCategory | undefined;
+  #pulseReturnTrigger: HTMLElement | undefined;
   #powerFloCard: PowerFloCardElement | undefined;
   #forceFrameRender = true;
   #sonoraReadinessController: AbortController | undefined;
@@ -151,6 +159,10 @@ export class H2DCDashboardCard extends HTMLElement {
     // Lovelace may connect the element before its panel column has finished laying out.
     window.requestAnimationFrame(this.#syncViewportOffset);
     window.addEventListener("resize", this.#syncViewportOffset);
+    // A late-loaded Marketplace resource should enable Energy without requiring a second browser restart.
+    void customElements.whenDefined(POWERFLO_ELEMENT_NAME).then(() => {
+      if (this.isConnected) this.#render();
+    });
   }
 
   /** Creates the native Lovelace visual editor. */
@@ -280,6 +292,18 @@ export class H2DCDashboardCard extends HTMLElement {
       }
       if (action === "camera-detail-close") {
         this.#closeSecurityDialog();
+        return;
+      }
+      if (action === "pulse-detail") {
+        const category = control.dataset.category;
+        if (category === undefined || !HOUSE_PULSE_CATEGORIES.some((candidate) => candidate === category)) throw new Error("Unknown House Pulse category");
+        this.#pulseDetail = category as HousePulseCategory;
+        this.#pulseReturnTrigger = control;
+        this.#openPulseDialog();
+        return;
+      }
+      if (action === "pulse-detail-close") {
+        this.#closePulseDialog();
         return;
       }
       const hass = this.#hass;
@@ -417,6 +441,42 @@ export class H2DCDashboardCard extends HTMLElement {
     if (dialog?.open === true) dialog.close();
   }
 
+  /** Opens one House Pulse category with exact source names and current states. */
+  #openPulseDialog(): void {
+    const category = this.#pulseDetail;
+    const config = this.#config;
+    const hass = this.#hass;
+    const dialog = this.#root.querySelector<HTMLDialogElement>("[data-pulse-dialog]");
+    if (category === undefined || config === undefined || hass === undefined || dialog === null) return;
+    const projection = projectHousePulse(config, hass, category);
+    const heading = dialog.querySelector<HTMLElement>("[data-pulse-dialog-title]");
+    const summary = dialog.querySelector<HTMLElement>("[data-pulse-dialog-summary]");
+    const list = dialog.querySelector<HTMLElement>("[data-pulse-detail-list]");
+    if (heading !== null) heading.textContent = projection.title;
+    if (summary !== null) summary.textContent = projection.description;
+    if (list !== null) {
+      list.innerHTML = projection.items.length === 0
+        ? `<p class="pulse-empty">Configure one or more sources for this summary.</p>`
+        : projection.items.map((item) => `<div class="pulse-detail-item ${item.state}"><ha-icon icon="${escapeHtml(item.icon)}" aria-hidden="true"></ha-icon><span><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(item.value)}</small></span></div>`).join("");
+    }
+    if (!dialog.open) dialog.showModal();
+  }
+
+  /** Closes the House Pulse dialog through its native focus-restoring lifecycle. */
+  #closePulseDialog(): void {
+    const dialog = this.#root.querySelector<HTMLDialogElement>("[data-pulse-dialog]");
+    if (dialog?.open === true) dialog.close();
+  }
+
+  /** Clears the selected House Pulse category and restores the invoking control. */
+  #handlePulseDialogClose(dialog: HTMLDialogElement): void {
+    if (!shouldHandleDialogClose(dialog.open)) return;
+    this.#pulseDetail = undefined;
+    const trigger = this.#pulseReturnTrigger?.isConnected === true ? this.#pulseReturnTrigger : undefined;
+    this.#pulseReturnTrigger = undefined;
+    restoreDialogTrigger(trigger, window.requestAnimationFrame.bind(window));
+  }
+
   /** Dispatches a brightness update only after the range input has settled. */
   async #handleChange(event: Event): Promise<void> {
     const input = event.target;
@@ -466,7 +526,8 @@ export class H2DCDashboardCard extends HTMLElement {
     }
     const now = new Date();
     const mediaArtwork = this.#mediaArtworkSession.artwork;
-    frame.innerHTML = `<article class="shell" data-kiosk-profile="${escapeHtml(config.presentation.kioskProfile)}" data-density="${escapeHtml(config.presentation.density)}">${renderView({ config, hass, now, reducedMotion: this.#reducedMotion.matches, ...(mediaArtwork === undefined ? {} : { mediaArtwork }) })}<p class="sr-only" data-live-status aria-live="polite">${escapeHtml(this.#actionMessage)}</p></article>`;
+    const powerFloAvailable = customElements.get(POWERFLO_ELEMENT_NAME) !== undefined;
+    frame.innerHTML = `<article class="shell" data-kiosk-profile="${escapeHtml(config.presentation.kioskProfile)}" data-density="${escapeHtml(config.presentation.density)}">${renderView({ config, hass, now, reducedMotion: this.#reducedMotion.matches, powerFloAvailable, ...(mediaArtwork === undefined ? {} : { mediaArtwork }) })}<p class="sr-only" data-live-status aria-live="polite">${escapeHtml(this.#actionMessage)}</p></article>`;
     // Preserve the private keypad state across unrelated Home Assistant updates without exposing the code itself.
     this.#syncAlarmCodeDisplay();
     this.#forceFrameRender = false;
@@ -480,7 +541,7 @@ export class H2DCDashboardCard extends HTMLElement {
       if (background !== undefined) shell.style.setProperty("--active-background", `url("${cssUrl(background)}")`);
     }
     if (config.view === "sonos") this.#prepareSonoraFrame(frame);
-    if (config.view === "energy") {
+    if (config.view === "energy" && powerFloAvailable) {
       if (persistentLayer.querySelector("[data-energy-dialog]") === null) {
         persistentLayer.innerHTML = energyDialogMarkup();
         const dialog = persistentLayer.querySelector<HTMLDialogElement>("[data-energy-dialog]");
@@ -506,6 +567,19 @@ export class H2DCDashboardCard extends HTMLElement {
     } else {
       this.#cameraDetail = undefined;
       const dialog = persistentLayer.querySelector<HTMLDialogElement>("[data-security-dialog]");
+      if (dialog?.open === true) dialog.close();
+    }
+    if (config.view === "home") {
+      if (persistentLayer.querySelector("[data-pulse-dialog]") === null) {
+        persistentLayer.insertAdjacentHTML("beforeend", pulseDialogMarkup());
+        const dialog = persistentLayer.querySelector<HTMLDialogElement>("[data-pulse-dialog]");
+        dialog?.addEventListener("close", () => this.#handlePulseDialogClose(dialog));
+      }
+      this.#openPulseDialog();
+    } else {
+      this.#pulseDetail = undefined;
+      this.#pulseReturnTrigger = undefined;
+      const dialog = persistentLayer.querySelector<HTMLDialogElement>("[data-pulse-dialog]");
       if (dialog?.open === true) dialog.close();
     }
     if (focusedControl !== undefined) {
