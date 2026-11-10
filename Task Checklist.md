@@ -13,3 +13,4 @@
 - [done] Add a live System-view control for showing or hiding the simulated EV Charging tab.
 - [done] Commission a 4-second Apple TV console-light brightness transition without adding any off action.
 - [done] Build, deploy and read back the current v1.3.1 dashboard bundle.
+- [done] Publish the immutable v1.3.1 HACS release and verify the installed production artifact.

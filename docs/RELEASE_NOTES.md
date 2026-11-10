@@ -1,9 +1,12 @@
-# H2DC Dashboard v1.3.0
+# H2DC Dashboard v1.3.1
 
-H2DC Dashboard v1.3.0 adds a version-neutral EV Charging workspace, a production-safe read-only simulator, live OCPP telemetry projection, and recent charging-session history.
+H2DC Dashboard v1.3.1 adds a live System-view control for the read-only EV Charging simulator while retaining the version-neutral OCPP workspace introduced in v1.3.0.
 
 ## Completed work
 
+- Added an allowlisted `input_boolean` control beside the System-view PoE control for showing or hiding the simulated EV Charging workspace at runtime.
+- Made the mapped helper authoritative over the portable static simulator flag, so an operator can disable both simulated telemetry and the EV Charging navigation tab without editing Lovelace YAML.
+- Commissioned a four-second Living Room Apple TV console-light transition for both dimming and brightening while preserving the automation's guarantee that it never turns the light off.
 - Shipped one configurable Home Assistant custom card with Home, Security, Energy, EV Charging, Climate, Lights, Media, Sonos, and System views.
 - Added normalized OCPP 1.6J, 2.0.1 and 2.1 entity mappings for connector state, power, current, voltage, temperature, session energy, lifetime energy, transaction identity, availability and recent history.
 - Added an opt-in `ev_charging_demo` feature flag and visual-editor toggle that renders labelled sample telemetry without exposing a charger command.
