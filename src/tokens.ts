@@ -17,8 +17,8 @@ interface H2DCTokens {
   };
   readonly space: Readonly<Record<"1" | "2" | "3" | "4" | "6" | "8" | "12" | "16", string>>;
   readonly radius: Readonly<Record<"small" | "medium" | "large" | "round", string>>;
-  readonly motion: Readonly<Record<"instant" | "micro" | "standard", string>>;
-  readonly typography: Readonly<Record<"micro" | "compact" | "pageSubheading" | "keypadTracking", string>>;
+  readonly motion: Readonly<Record<"instant" | "micro" | "standard" | "ambient", string>>;
+  readonly typography: Readonly<Record<"micro" | "compact" | "pageSubheading" | "keypadTracking" | "demoTracking" | "demoWeight", string>>;
   readonly readiness: Readonly<Record<"sonoraThemeSettle" | "sonoraThemeTimeout", number>>;
 }
 
@@ -41,7 +41,7 @@ export const TOKENS = {
   },
   space: { "1": "0.25rem", "2": "0.5rem", "3": "0.75rem", "4": "1rem", "6": "1.5rem", "8": "2rem", "12": "3rem", "16": "4rem" },
   radius: { small: "0.5rem", medium: "0.75rem", large: "1.5rem", round: "999rem" },
-  motion: { instant: "100ms", micro: "200ms", standard: "320ms" },
-  typography: { micro: "0.75rem", compact: "0.78rem", pageSubheading: "clamp(1.25rem, 1.4vw + 0.5rem, 1.75rem)", keypadTracking: "0.2em" },
+  motion: { instant: "100ms", micro: "200ms", standard: "320ms", ambient: "1500ms" },
+  typography: { micro: "0.75rem", compact: "0.78rem", pageSubheading: "clamp(1.25rem, 1.4vw + 0.5rem, 1.75rem)", keypadTracking: "0.2em", demoTracking: "0.08em", demoWeight: "650" },
   readiness: { sonoraThemeSettle: 2200, sonoraThemeTimeout: 5000 },
 } as const satisfies H2DCTokens;

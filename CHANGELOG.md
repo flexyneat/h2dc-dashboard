@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.3.0 — 2026-11-10
+
+- Promoted the accepted EV Charging workspace to production as v1.3.0.
+- Added the explicit `ev_charging_demo` feature flag and visual-editor toggle for a labelled, read-only charger simulation with no service-control mapping.
+- Documented end-to-end OCPP charger onboarding, entity mapping, acceptance testing, and simulator retirement.
+- Restored the Living Room Apple TV automation to its original dim/brighten responsibility: 31% while playing and 92% while paused or idle, with no light-off action.
+- Disabled the redundant pause handler and Apple-TV-off forced-shutoff automation while retaining the dedicated 07:00 whole-house LED-strip shutoff.
+
+- Added a visibly labelled, read-only EV charger simulation behind the explicit `ev_charging_demo` flag so the charging workspace and session history can be evaluated before hardware commissioning; it is disabled by default and exposes no charger command.
+- Added an end-to-end OCPP charger commissioning guide covering protocol compatibility, CSMS connectivity, Home Assistant entity mapping, history attributes, safe control acceptance, and troubleshooting.
+- Added a capability-gated EV Charging route that stays hidden until a real OCPP connector-status entity is configured.
+- Added a version-neutral entity adapter for OCPP 1.6J, 2.0.1 and 2.1 lifecycle terminology while keeping protocol transport and negotiation outside the dashboard.
+- Added strict, model-agnostic OCPP entity mapping for connector state, live power, session energy, electrical telemetry, transaction metadata, bounded history and an allowlisted charge switch.
+- Added a no-scroll charging workspace with live topology, connector health, current-session summary and recent-session records without fabricating unsupported measurands.
+- Added reduced-motion behavior, whole-card keyboard/touch semantics and regression tests for OCPP state normalization, missing telemetry and control allowlisting.
+- Confirmed the commissioned Home Assistant instance currently has no OCPP integration or OCPP entities; the feature therefore remains dormant until physical charger commissioning.
+
 ## 1.2.0 — 2026-11-08
 
 - Added configurable navigation labels and visibility for all eight dashboard routes, including capability-aware Energy visibility when PowerFlo is unavailable.
@@ -48,6 +65,11 @@
 - Verified strict TypeScript, 149 source tests with one environment-dependent skip, three distribution-isolation tests, both production and preview builds, and a zero-vulnerability production dependency audit.
 
 ## Unreleased
+
+- Added a visibly labelled, read-only EV charger simulation behind the explicit `ev_charging_demo` flag so the charging workspace and session history can be evaluated before hardware commissioning; it is disabled by default and exposes no charger command.
+- Added an end-to-end OCPP charger commissioning guide covering protocol compatibility, CSMS connectivity, Home Assistant entity mapping, history attributes, safe control acceptance, and troubleshooting.
+
+- Installed the version-neutral EV Charging implementation to the isolated H2DC preview with a cache-busted resource and verified route-title read-back; production remains unchanged.
 
 - Renamed the Media whole-home group to `Common areas` and added configurable Sonos Roam support using the commissioned `media_player.roam_2` entity.
 - Removed the duplicate date beneath the Home clock while preserving the primary Home date heading.

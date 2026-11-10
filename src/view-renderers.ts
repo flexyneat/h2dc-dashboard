@@ -4,6 +4,7 @@ import { lightCapabilities } from "./entity-capabilities";
 import { escapeHtml, readEntity, readNumericState, type HassAttributeValue, type HassEntity, type HomeAssistant } from "./home-assistant";
 import { projectHousePulse, type HousePulseCategory } from "./house-pulse";
 import { resolveCurrentMedia, resolveHomeAssistantArtwork, type MediaArtwork } from "./media-artwork";
+import { isOcppConfigured, projectOcpp, type OcppProjection } from "./ocpp-adapter";
 import { derivePowerFlow, formatPower, type FlowDirection } from "./power-flow";
 import { formatDecimal, formatNumericAttribute, formatNumericState } from "./value-format";
 
@@ -77,9 +78,11 @@ function viewPath(config: H2DCConfig, view: H2DCView): string {
   return `${config.dashboardPath.replace(/\/$/u, "")}/${view}`;
 }
 
-/** Renders the persistent eight-route navigation and context header. */
+/** Renders persistent navigation and the current route context. */
 function header(context: RenderContext, eyebrow: string, summary: string): string {
-  const tabs = H2DC_VIEWS.filter((view) => context.config.navigation[view].visible && (view !== "energy" || context.powerFloAvailable !== false));
+  const tabs = H2DC_VIEWS.filter((view) => context.config.navigation[view].visible
+    && (view !== "energy" || context.powerFloAvailable !== false)
+    && (view !== "charging" || isOcppConfigured(context.config.entities.ocpp)));
   const date = new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long" }).format(context.now);
   const dateHeading = context.config.view === "home" ? `<h1>${escapeHtml(date)}</h1>` : "";
   if (context.config.view === "home") eyebrow = resolveHomeContext(context.config, context.hass, context.now).eyebrow;
@@ -87,6 +90,42 @@ function header(context: RenderContext, eyebrow: string, summary: string): strin
     ? eyebrow === "Home overview" ? "" : `<span>${escapeHtml(eyebrow)}</span>`
     : `<h1 class="page-subheading">${escapeHtml(eyebrow)}</h1>`;
   return `<header><div class="brand">H2DC</div><nav class="nav" aria-label="Dashboard views">${tabs.map((path) => `<a class="${context.config.view === path ? "active" : ""}" href="${escapeHtml(viewPath(context.config, path))}">${escapeHtml(context.config.navigation[path].label)}</a>`).join("")}</nav><div class="tools">${icon("mdi:magnify")}<a href="?h2dc_admin=1" aria-label="Show Home Assistant controls">${icon("mdi:cog-outline")}</a></div><div class="intro">${pageSubheading}${dateHeading}<p>${escapeHtml(summary)}</p></div></header>`;
+}
+
+/** Formats an optional charging metric without implying that an absent measurand is zero. */
+function chargingMetric(value: number | undefined, unit: string): string {
+  return value === undefined ? "Unavailable" : `${formatDecimal(value)} ${unit}`;
+}
+
+/** Renders one compact OCPP measurement. */
+function ocppMetric(label: string, value: string): string {
+  return `<div class="ocpp-metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`;
+}
+
+/** Renders model-independent OCPP session history supplied by a configured helper entity. */
+function ocppHistory(projection: OcppProjection): string {
+  if (projection.sessions.length === 0) return `<div class="ocpp-empty"><strong>No recorded sessions</strong><span>Configure a session-history helper to retain completed charges.</span></div>`;
+  return projection.sessions.slice(0, 4).map((session) => {
+    const started = new Date(session.startedAt);
+    const label = Number.isNaN(started.getTime()) ? session.startedAt : new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(started);
+    return `<div class="ocpp-session"><span><strong>${escapeHtml(label)}</strong><small>${escapeHtml(session.stopReason ?? (session.stoppedAt === undefined ? "In progress" : "Completed"))}</small></span><b>${escapeHtml(chargingMetric(session.energyKwh, "kWh"))}</b></div>`;
+  }).join("");
+}
+
+/** Renders the optional, no-scroll EV Charging workspace from normalized OCPP telemetry. */
+function renderCharging(context: RenderContext): string {
+  const entities = context.config.entities.ocpp;
+  if (!isOcppConfigured(entities)) {
+    return `${header(context, "EV Charging unavailable", "Map an OCPP status entity to enable this optional workspace")}<main class="page-grid"><section class="glass dependency" role="status"><h2>EV Charging is disabled</h2><p>Add a compatible Home Assistant OCPP integration, commission the charger, and map its entities in H2DC. Missing measurements will remain unavailable.</p></section></main>`;
+  }
+  const projection = projectOcpp(context.hass, entities);
+  const active = projection.state === "charging";
+  const controlState = entities.chargeControl === undefined ? undefined : readEntity(context.hass, entities.chargeControl);
+  const controlAvailable = controlState?.status === "available";
+  const errorText = projection.errorCode === undefined || projection.errorCode.toLocaleLowerCase() === "noerror" ? "No active fault" : projection.errorCode;
+  const connector = projection.connectorId ?? "Not reported";
+  const demoBadge = projection.simulated ? `<span class="charging-demo-badge">Simulated preview</span>` : "";
+  return `${header(context, "EV Charging overview", `${projection.stateLabel} · ${chargingMetric(projection.powerKw, "kW")} · Connector ${connector}`)}<main class="charging-workspace"><aside class="charging-rail" aria-label="Live charging telemetry"><section class="glass charging-panel"><div class="card-title">Live telemetry</div>${ocppMetric("State", projection.stateLabel)}${ocppMetric("Power", chargingMetric(projection.powerKw, "kW"))}${ocppMetric("Current", chargingMetric(projection.currentA, "A"))}${ocppMetric("Voltage", chargingMetric(projection.voltageV, "V"))}${ocppMetric("Temperature", chargingMetric(projection.temperatureC, "°C"))}</section><section class="glass charging-panel"><div class="card-title">Connector health</div>${ocppMetric("Connector", connector)}${ocppMetric("Transaction", projection.transactionId ?? "None")}${ocppMetric("Status", errorText)}</section></aside><section class="glass charging-focus ${projection.state}"><div class="card-title">EV charging ${demoBadge}</div><div class="charging-topology" aria-label="${active ? "Power is flowing from the home supply through the charger to the vehicle" : "Charger is not delivering power"}"><span class="charging-node">${icon("mdi:home-lightning-bolt-outline")}<small>Home supply</small></span><span class="charging-path ${active ? "active" : ""}" aria-hidden="true"><i></i></span><span class="charging-node charger">${icon("mdi:ev-station")}<strong>${escapeHtml(projection.stateLabel)}</strong><small>${escapeHtml(chargingMetric(projection.powerKw, "kW"))}</small></span><span class="charging-path ${active ? "active" : ""}" aria-hidden="true"><i></i></span><span class="charging-node">${icon("mdi:car-electric")}<small>Vehicle</small></span></div><div class="charging-session-summary">${ocppMetric("Session energy", chargingMetric(projection.sessionEnergyKwh, "kWh"))}${ocppMetric("Duration", chargingMetric(projection.sessionDurationMinutes, "min"))}${ocppMetric("Lifetime energy", chargingMetric(projection.totalEnergyKwh, "kWh"))}</div>${entities.chargeControl === undefined ? `<p class="charging-note">${projection.simulated ? "Read-only demo: no charger command will be sent." : "Remote charge control is not configured."}</p>` : `<button class="charging-control" data-action="ocpp-toggle" data-entity="${escapeHtml(entities.chargeControl)}" aria-pressed="${controlState?.status === "available" && controlState.entity.state === "on"}" ${controlAvailable ? "" : "disabled"}>${icon(active ? "mdi:stop-circle-outline" : "mdi:play-circle-outline")}<span>${active ? "Stop charging" : "Enable charging"}</span></button>`}</section><aside class="charging-rail" aria-label="Charging session history"><section class="glass charging-panel charging-history"><div class="card-title">Recent sessions</div>${ocppHistory(projection)}</section><section class="glass charging-panel"><div class="card-title">Operations</div>${ocppMetric("Availability", stateText(context, entities.availability))}${ocppMetric("Current limit", entities.maximumCurrent === undefined ? "Not configured" : `${numericText(context, entities.maximumCurrent)} A`)}<p class="charging-note">Controls appear only when their exact Home Assistant entities are mapped.</p></section></aside></main>`;
 }
 
 /** Renders a safe route-level explanation when the optional PowerFlo dependency is absent. */
@@ -417,12 +456,13 @@ function renderDiagnostics(context: RenderContext): string {
   return `${header(context, "System overview", unavailable === 0 ? "Tablet and PoE telemetry online" : `${unavailable} diagnostics unavailable`)}<main class="page-grid diagnostics-grid">${values.map(([mdi, label, entityId, suffix]) => diagnostic(context, mdi, label, entityId, suffix, label === "PoE port")).join("")}<section class="glass diagnostic-note"><div class="card-title">Commissioning status</div><p>Tablet telemetry remains read-only. The PoE control requires confirmation before Home Assistant changes the wall-tablet power feed.</p></section></main>`;
 }
 
-/** Renders one of the eight stable H2DC routes with exhaustive handling. */
+/** Renders one stable H2DC route with exhaustive handling. */
 export function renderView(context: RenderContext): string {
   switch (context.config.view) {
     case "home": return renderHome(context);
     case "security": return renderSecurity(context);
     case "energy": return context.powerFloAvailable === false ? renderEnergyDisabled(context) : renderEnergy(context);
+    case "charging": return renderCharging(context);
     case "climate": return renderClimate(context);
     case "lights": return renderLights(context);
     case "media": return renderMedia(context);

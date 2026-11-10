@@ -3,6 +3,7 @@
  */
 
 import { isRecord } from "./config-schema";
+import { isEvChargingDemoRequested } from "./ev-charging-demo";
 import { H2DCDashboardCard } from "./index";
 import { H2DC_PACKAGE_VERSION } from "./version";
 
@@ -10,7 +11,10 @@ import { H2DC_PACKAGE_VERSION } from "./version";
 class H2DCPreviewDashboardCard extends H2DCDashboardCard {
   /** Normalizes the preview tag before the shared strict parser sees the configuration. */
   public override setConfig(input: unknown): void {
-    super.setConfig(isRecord(input) ? { ...input, type: "custom:h2dc-dashboard-card" } : input);
+    const normalized = isRecord(input)
+      ? { ...input, type: "custom:h2dc-dashboard-card", ev_charging_demo: isEvChargingDemoRequested(input) }
+      : input;
+    super.setConfig(normalized);
   }
 }
 

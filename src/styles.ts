@@ -39,12 +39,16 @@ export const CARD_STYLES = `
   --radius-s: ${TOKENS.radius.small};
   --radius-m: ${TOKENS.radius.medium};
   --radius-l: ${TOKENS.radius.large};
+  --radius-round: ${TOKENS.radius.round};
   --instant: ${TOKENS.motion.instant};
   --micro: ${TOKENS.motion.micro};
+  --ambient: ${TOKENS.motion.ambient};
   --type-micro: ${TOKENS.typography.micro};
   --type-compact: ${TOKENS.typography.compact};
   --type-page-subheading: ${TOKENS.typography.pageSubheading};
   --keypad-tracking: ${TOKENS.typography.keypadTracking};
+  --demo-tracking: ${TOKENS.typography.demoTracking};
+  --demo-weight: ${TOKENS.typography.demoWeight};
 }
 :host(.admin) { position: relative; inset: auto; z-index: auto; width: auto; height: auto; }
 * { box-sizing: border-box; }
@@ -81,7 +85,8 @@ header { position: relative; min-height: 12rem; }
   inset-block-start: 0;
   inset-inline-start: 18%;
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   width: 64%;
   min-height: 4rem;
   padding: var(--gap-1);
@@ -327,6 +332,34 @@ header { position: relative; min-height: 12rem; }
 .powerflo-host { min-width: 0; }
 .energy-dialog .powerflo-host { min-height: 0; overflow: auto; padding: var(--gap-3); }
 .energy-dialog [data-energy-focused-host] { min-height: 0; overflow: auto; padding: var(--gap-6); }
+.charging-workspace { display: grid; grid-template-columns: minmax(13rem, .8fr) minmax(26rem, 1.6fr) minmax(13rem, .8fr); gap: var(--gap-4); min-height: 0; }
+.charging-rail { display: grid; min-height: 0; gap: var(--gap-4); grid-template-rows: repeat(2, minmax(0, 1fr)); }
+.charging-panel { display: grid; align-content: start; gap: var(--gap-2); min-height: 0; padding: var(--gap-4); overflow: hidden; }
+.ocpp-metric { display: flex; min-height: 2.75rem; align-items: center; justify-content: space-between; gap: var(--gap-3); border-block-end: 0.0625rem solid var(--border); }
+.ocpp-metric span, .ocpp-session small, .ocpp-empty span, .charging-note { color: var(--on-muted); }
+.ocpp-metric strong { text-align: end; font-variant-numeric: tabular-nums; }
+.charging-focus { display: grid; min-height: 0; align-content: space-between; gap: var(--gap-4); padding: var(--gap-4); }
+.charging-demo-badge { margin-inline-start: var(--gap-2); padding: var(--gap-1) var(--gap-2); border: 0.0625rem solid var(--accent); border-radius: var(--radius-round); color: var(--accent); font-size: var(--type-micro); font-weight: var(--demo-weight); letter-spacing: var(--demo-tracking); text-transform: uppercase; }
+.charging-topology { display: grid; grid-template-columns: 1fr minmax(4rem, .7fr) 1.25fr minmax(4rem, .7fr) 1fr; align-items: center; gap: var(--gap-2); }
+.charging-node { display: grid; min-height: 8rem; place-items: center; align-content: center; gap: var(--gap-2); text-align: center; }
+.charging-node ha-icon { width: 3rem; height: 3rem; }
+.charging-node.charger { min-height: 11rem; border: 0.0625rem solid var(--border-strong); border-radius: var(--radius-l); background: var(--surface-raised); }
+.charging-node.charger ha-icon { width: 4rem; height: 4rem; color: var(--accent); }
+.charging-path { position: relative; display: block; block-size: 0.125rem; overflow: hidden; background: var(--border-strong); }
+.charging-path i { position: absolute; inset-block-start: -.2rem; inset-inline-start: -.5rem; display: block; inline-size: .75rem; block-size: .5rem; clip-path: polygon(0 0,100% 50%,0 100%); background: var(--accent); opacity: 0; }
+.charging-path.active { background: var(--accent); }
+.charging-path.active i { opacity: 1; animation: charging-flow var(--ambient) linear infinite; }
+.charging-session-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap-3); }
+.charging-session-summary .ocpp-metric { display: grid; justify-content: start; border: 0; padding: var(--gap-3); border-radius: var(--radius-m); background: var(--surface-raised); }
+.charging-control { min-height: 3.5rem; border: 0.0625rem solid var(--border-strong); border-radius: var(--radius-m); background: var(--surface-raised); color: var(--on-surface); }
+.charging-control:focus-visible { outline: 0.1875rem solid var(--focus); outline-offset: 0.125rem; }
+.charging-history { grid-template-rows: auto repeat(4, minmax(0, 1fr)); }
+.ocpp-session { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-3); border-block-end: 0.0625rem solid var(--border); }
+.ocpp-session span, .ocpp-empty { display: grid; gap: var(--gap-1); }
+.ocpp-session b { font-variant-numeric: tabular-nums; }
+.ocpp-empty { align-content: center; min-height: 8rem; text-align: center; }
+@keyframes charging-flow { from { transform: translateX(0); } to { transform: translateX(5rem); } }
+@media (prefers-reduced-motion: reduce) { .charging-path.active i { animation: none; opacity: 0; } }
 .energy-detail-surface { display: grid; align-content: start; gap: var(--gap-6); }
 .energy-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap-3); }
 .energy-detail-metric { display: grid; gap: var(--gap-2); min-height: 7rem; align-content: center; padding: var(--gap-4); border: 0.0625rem solid var(--border); border-radius: var(--radius-m); background: var(--surface-raised); }
@@ -473,13 +506,16 @@ header { position: relative; min-height: 12rem; }
   :host { position: relative; height: auto; min-height: 100vh; }
   .shell { min-height: 100vh; }
   header { min-height: 15rem; padding-block-start: 5rem; }
-  .nav { inset-inline: 0; width: 100%; overflow-x: auto; grid-template-columns: repeat(8, minmax(5.25rem, 1fr)); }
+  .nav { inset-inline: 0; width: 100%; overflow-x: auto; grid-auto-columns: minmax(5.25rem, 1fr); }
   .brand { inset-block-start: 5rem; }
   .tools { inset-block-start: 5rem; }
   .home-grid, .security-grid, .climate-grid, .media-grid { height: auto; grid-template-columns: 1fr; grid-template-rows: auto; grid-template-areas: none; overflow: visible; }
   .media-living, .media-private, .media-now, .media-whole, .media-quick { grid-area: auto; }
   .sonos-workspace { height: calc(100vh - 17.5rem); }
   .energy-workspace { height: auto; min-height: 0; grid-template-columns: 1fr; overflow: visible; }
+  .charging-workspace { height: auto; min-height: 0; grid-template-columns: 1fr; overflow: visible; }
+  .charging-topology { min-height: 30rem; grid-row: 1; }
+  .charging-rail { grid-template-rows: auto; }
   .energy-focus { min-height: 30rem; grid-row: 1; }
   .energy-rail { grid-template-rows: auto; }
   .lights-workspace { height: auto; overflow: visible; }

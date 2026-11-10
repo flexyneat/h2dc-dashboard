@@ -14,6 +14,7 @@ import {
   type LightEntity,
   type MediaEntities,
   type NavigationConfig,
+  type OcppEntities,
   type KioskProfile,
   type PresentationConfig,
   type PresentationDensity,
@@ -31,12 +32,13 @@ export const PUBLIC_DEFAULTS = {
   type: "custom:h2dc-dashboard-card",
   configVersion: 2,
   dashboardPath: "/h2dc",
+  evChargingDemo: false,
   flowThresholdW: 40,
   batteryPositiveIs: "discharge",
   gridPositiveIs: "import",
 } as const satisfies Pick<
   H2DCConfig,
-  "type" | "configVersion" | "dashboardPath" | "flowThresholdW" | "batteryPositiveIs" | "gridPositiveIs"
+  "type" | "configVersion" | "dashboardPath" | "evChargingDemo" | "flowThresholdW" | "batteryPositiveIs" | "gridPositiveIs"
 >;
 
 /** Public presentation defaults contain no installation identity or imagery. */
@@ -54,6 +56,7 @@ export const NAVIGATION_DEFAULTS = {
   home: { label: "Home", visible: true },
   security: { label: "Security", visible: true },
   energy: { label: "Energy", visible: true },
+  charging: { label: "EV Charging", visible: true },
   climate: { label: "Climate", visible: true },
   lights: { label: "Lights", visible: true },
   media: { label: "Media", visible: true },
@@ -478,6 +481,13 @@ export function parseConfig(input: unknown): ConfigParseResult {
   const diagnostics = parseOptionalEntityMap<DiagnosticEntities>(entities.diagnostics, {
     tabletBattery: "tablet_battery", pluggedIn: "plugged_in", screen: "screen", currentPage: "current_page", poe: "poe", poePower: "poe_power",
   }, "entities.diagnostics", issues);
+  const ocpp = parseOptionalEntityMap<OcppEntities>(entities.ocpp, {
+    status: "status", power: "power", sessionEnergy: "session_energy", totalEnergy: "total_energy",
+    current: "current", voltage: "voltage", temperature: "temperature", sessionDuration: "session_duration",
+    transactionId: "transaction_id", connectorId: "connector_id", errorCode: "error_code",
+    sessionHistory: "session_history", chargeControl: "charge_control", maximumCurrent: "maximum_current",
+    availability: "availability",
+  }, "entities.ocpp", issues);
   const dashboardPathCandidate = compatibleValue(input, "dashboardPath", "dashboard_path");
   const dashboardPath = typeof dashboardPathCandidate === "string" ? dashboardPathCandidate : PUBLIC_DEFAULTS.dashboardPath;
   if (!/^\/(?!\/)[A-Za-z0-9._~!$&'()*+,;=:@%/-]*$/u.test(dashboardPath)) {
@@ -486,6 +496,8 @@ export function parseConfig(input: unknown): ConfigParseResult {
   const sonoraCandidate = compatibleValue(input, "sonoraUrl", "sonora_url");
   const sonoraUrl = typeof sonoraCandidate === "string" && /^https:\/\//u.test(sonoraCandidate) ? sonoraCandidate : undefined;
   if (sonoraCandidate !== undefined && sonoraUrl === undefined) issues.push("sonora_url must be an HTTPS URL");
+  const evChargingDemoCandidate = compatibleValue(input, "evChargingDemo", "ev_charging_demo") ?? PUBLIC_DEFAULTS.evChargingDemo;
+  if (typeof evChargingDemoCandidate !== "boolean") issues.push("ev_charging_demo must be a boolean");
 
   // Parse every nested boundary before the final gate so no malformed optional section is silently discarded.
   const nearby = parseLabelledEntities(entities.nearby, "entities.nearby", issues);
@@ -511,6 +523,7 @@ export function parseConfig(input: unknown): ConfigParseResult {
     configVersion: 2,
     view,
     dashboardPath,
+    evChargingDemo: evChargingDemoCandidate === true,
     ...(sonoraUrl !== undefined ? { sonoraUrl } : {}),
     flowThresholdW,
     batteryPositiveIs: batteryConvention as BatteryPositiveConvention,
@@ -529,6 +542,7 @@ export function parseConfig(input: unknown): ConfigParseResult {
       energy,
       media,
       diagnostics,
+      ocpp,
       housePulse,
     },
     backgrounds,
@@ -542,7 +556,7 @@ export function parseConfig(input: unknown): ConfigParseResult {
 /** Returns the configured view after exhaustive validation. */
 export function assertView(view: H2DCView): H2DCView {
   switch (view) {
-    case "home": case "security": case "energy": case "climate": case "lights": case "media": case "sonos": case "diagnostics": return view;
+    case "home": case "security": case "energy": case "charging": case "climate": case "lights": case "media": case "sonos": case "diagnostics": return view;
     default: {
       const exhaustive: never = view;
       return exhaustive;
@@ -568,6 +582,7 @@ export function createDraftConfig(input: unknown): H2DCConfig {
   const flowValue = Number(compatibleValue(root, "flowThresholdW", "flow_threshold_w") ?? PUBLIC_DEFAULTS.flowThresholdW);
   const batteryValue = compatibleValue(root, "batteryPositiveIs", "battery_positive_is");
   const gridValue = compatibleValue(root, "gridPositiveIs", "grid_positive_is");
+  const evChargingDemoValue = compatibleValue(root, "evChargingDemo", "ev_charging_demo");
   const sonoraUrl = stringValue(root, "sonoraUrl", "sonora_url");
   const day = stringValue(backgrounds, "day");
   const night = stringValue(backgrounds, "night");
@@ -579,6 +594,7 @@ export function createDraftConfig(input: unknown): H2DCConfig {
     configVersion: 2,
     view,
     dashboardPath: stringValue(root, "dashboardPath", "dashboard_path") || PUBLIC_DEFAULTS.dashboardPath,
+    evChargingDemo: evChargingDemoValue === true,
     ...(sonoraUrl !== "" ? { sonoraUrl } : {}),
     flowThresholdW: Number.isFinite(flowValue) && flowValue >= 0 ? flowValue : PUBLIC_DEFAULTS.flowThresholdW,
     batteryPositiveIs: batteryValue === "charge" ? "charge" : "discharge",
@@ -610,6 +626,13 @@ export function createDraftConfig(input: unknown): H2DCConfig {
       diagnostics: parseOptionalEntityMap<DiagnosticEntities>(entities.diagnostics, {
         tabletBattery: "tablet_battery", pluggedIn: "plugged_in", screen: "screen", currentPage: "current_page", poe: "poe", poePower: "poe_power",
       }, "entities.diagnostics", []),
+      ocpp: parseOptionalEntityMap<OcppEntities>(entities.ocpp, {
+        status: "status", power: "power", sessionEnergy: "session_energy", totalEnergy: "total_energy",
+        current: "current", voltage: "voltage", temperature: "temperature", sessionDuration: "session_duration",
+        transactionId: "transaction_id", connectorId: "connector_id", errorCode: "error_code",
+        sessionHistory: "session_history", chargeControl: "charge_control", maximumCurrent: "maximum_current",
+        availability: "availability",
+      }, "entities.ocpp", []),
       housePulse: parseHousePulse(compatibleValue(entities, "housePulse", "house_pulse"), []),
     },
     backgrounds: {

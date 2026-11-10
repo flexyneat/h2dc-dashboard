@@ -3,6 +3,7 @@ export const H2DC_VIEWS = [
   "home",
   "security",
   "energy",
+  "charging",
   "climate",
   "lights",
   "media",
@@ -178,6 +179,25 @@ export interface DiagnosticEntities {
   readonly poePower?: string;
 }
 
+/** Optional version-neutral OCPP telemetry and controls exposed by the installed Home Assistant integration. */
+export interface OcppEntities {
+  readonly status?: string;
+  readonly power?: string;
+  readonly sessionEnergy?: string;
+  readonly totalEnergy?: string;
+  readonly current?: string;
+  readonly voltage?: string;
+  readonly temperature?: string;
+  readonly sessionDuration?: string;
+  readonly transactionId?: string;
+  readonly connectorId?: string;
+  readonly errorCode?: string;
+  readonly sessionHistory?: string;
+  readonly chargeControl?: string;
+  readonly maximumCurrent?: string;
+  readonly availability?: string;
+}
+
 /** Media entities shown across the media and Home views. */
 export interface MediaEntities {
   readonly primary?: string;
@@ -236,6 +256,7 @@ export interface H2DCEntities {
   readonly energy: EnergyEntities;
   readonly media: MediaEntities;
   readonly diagnostics: DiagnosticEntities;
+  readonly ocpp: OcppEntities;
   readonly housePulse: HousePulseEntities;
 }
 
@@ -253,6 +274,7 @@ export interface H2DCConfig {
   readonly view: H2DCView;
   readonly dashboardPath: string;
   readonly sonoraUrl?: string;
+  readonly evChargingDemo: boolean;
   readonly flowThresholdW: number;
   readonly batteryPositiveIs: BatteryPositiveConvention;
   readonly gridPositiveIs: GridPositiveConvention;

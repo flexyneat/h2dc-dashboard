@@ -84,6 +84,16 @@ describe("dispatchDashboardAction", () => {
     expect(forged.callService).not.toHaveBeenCalled();
   });
 
+  it("toggles only the exact configured OCPP control switch", async () => {
+    const harness = serviceHarness();
+    await dispatchDashboardAction(harness.hass, { type: "ocpp_toggle", entityId: "switch.ev_charger", allowedEntityId: "switch.ev_charger" });
+    expect(harness.callService).toHaveBeenCalledWith("switch", "toggle", { entity_id: "switch.ev_charger" });
+
+    const forged = serviceHarness();
+    await expect(dispatchDashboardAction(forged.hass, { type: "ocpp_toggle", entityId: "switch.other", allowedEntityId: "switch.ev_charger" })).rejects.toThrow("configured control switch");
+    expect(forged.callService).not.toHaveBeenCalled();
+  });
+
   it("rejects non-finite numeric payloads", async () => {
     const harness = serviceHarness();
     await expect(dispatchDashboardAction(harness.hass, { type: "set_light_brightness", entityId: "light.lounge", brightnessPercent: Number.NaN })).rejects.toThrow("finite value");

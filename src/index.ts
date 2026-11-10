@@ -4,6 +4,7 @@ import { buildMediumStreamUrl } from "./camera-stream";
 import { createDraftConfig, parseConfig } from "./config-schema";
 import type { H2DCConfig } from "./domain";
 import { ENERGY_DETAILS, renderFocusedEnergyDetail, usesCompletePowerFlo, type EnergyDetailKey } from "./energy-detail";
+import { isEvChargingDemoRequested, withEvChargingDemoConfig, withEvChargingDemoStates } from "./ev-charging-demo";
 import { H2DCDashboardEditor } from "./editor/h2dc-dashboard-editor";
 import { escapeHtml, type HomeAssistant } from "./home-assistant";
 import { HOUSE_PULSE_CATEGORIES, projectHousePulse, type HousePulseCategory } from "./house-pulse";
@@ -121,6 +122,7 @@ export class H2DCDashboardCard extends HTMLElement {
   #config: H2DCConfig | undefined;
   #configSignature: string | undefined;
   #hass: HomeAssistant | undefined;
+  #evChargingDemo = false;
   #issues: readonly string[] = [];
   #actionMessage = "";
   #energyDetail: EnergyDetailKey | undefined;
@@ -177,7 +179,8 @@ export class H2DCDashboardCard extends HTMLElement {
 
   /** Validates and stores card configuration before rendering it. */
   public setConfig(input: unknown): void {
-    const result = parseConfig(input);
+    this.#evChargingDemo = isEvChargingDemoRequested(input);
+    const result = parseConfig(this.#evChargingDemo ? withEvChargingDemoConfig(input) : input);
     const nextSignature = result.status === "valid" ? dashboardConfigSignature(result.config) : undefined;
     const isEquivalentConfig = nextSignature !== undefined && nextSignature === this.#configSignature;
     if (!isEquivalentConfig) this.#alarmCode = transitionAlarmCode(this.#alarmCode, { reason: "config-change" });
@@ -201,7 +204,8 @@ export class H2DCDashboardCard extends HTMLElement {
 
   /** Receives immutable Home Assistant state updates from Lovelace. */
   public set hass(value: HomeAssistant) {
-    this.#hass = value;
+    // The simulator is an immutable local projection and never mutates Home Assistant entities.
+    this.#hass = this.#evChargingDemo ? withEvChargingDemoStates(value) : value;
     this.#syncMediaArtwork();
     this.#render();
   }
@@ -324,6 +328,13 @@ export class H2DCDashboardCard extends HTMLElement {
         if (!window.confirm("Change power to the wall tablet? The tablet may temporarily lose charging power.")) return;
         await dispatchDashboardAction(hass, { type: "poe_toggle", entityId, allowedEntityId });
         this.#announce("Tablet power command sent");
+        return;
+      }
+      if (action === "ocpp-toggle") {
+        const allowedEntityId = this.#config?.entities.ocpp.chargeControl;
+        if (allowedEntityId === undefined) throw new Error("Charging control is not configured");
+        await dispatchDashboardAction(hass, { type: "ocpp_toggle", entityId, allowedEntityId });
+        this.#announce("Charging command sent");
         return;
       }
       if (action === "toggle") await dispatchDashboardAction(hass, { type: "toggle", entityId });

@@ -1,6 +1,6 @@
 # H2DC Dashboard
 
-An eight-view Home Assistant dashboard for wall-mounted 16:10 tablets. H2DC brings security, live energy flow, climate, lighting, media, and kiosk diagnostics into one configurable card without embedding household entity IDs in the package. An optional Sonora view can be added by users who already run Sonora.
+A nine-view Home Assistant dashboard for wall-mounted 16:10 tablets. H2DC brings security, live energy flow, EV charging, climate, lighting, media, and kiosk diagnostics into one configurable card without embedding household entity IDs in the package. An optional Sonora view can be added by users who already run Sonora.
 
 [![Release](https://img.shields.io/github/v/release/flexyneat/h2dc-dashboard?display_name=tag&sort=semver)](https://github.com/flexyneat/h2dc-dashboard/releases/latest)
 [![HACS validation](https://github.com/flexyneat/h2dc-dashboard/actions/workflows/hacs.yml/badge.svg)](https://github.com/flexyneat/h2dc-dashboard/actions/workflows/hacs.yml)
@@ -16,6 +16,7 @@ An eight-view Home Assistant dashboard for wall-mounted 16:10 tablets. H2DC brin
 - **Home:** time, current weather, whole-house status, live energy flow, climate, now playing, nearby controls, and contextual summary cards.
 - **Security:** alarm controls, masked keypad, and a no-scroll nine-camera overview with focused medium-stream playback.
 - **Energy:** animated solar, battery, grid, and protected-load flow with focused detail surfaces and optional Complete PowerFlo analysis.
+- **EV Charging:** optional live connector state, power, electrical telemetry, active-session totals, and recent charging history from mapped OCPP entities.
 - **Climate:** room conditions, set-point controls, outdoor weather, and condition-aware imagery.
 - **Lights:** curated light and switch sections, capability-aware dimmers, and full-card touch targets.
 - **Media:** grouped Sonos and television endpoints with live metadata, transport controls, and album artwork when available.
@@ -115,12 +116,111 @@ presentation:
 
 The editor and schema support reusable rooms, per-view backgrounds, presentation density, House Pulse summaries, camera mappings, grouped media players, optional Sonora integration, kiosk diagnostics, PowerFlo telemetry, and installation-specific labels. Review the complete [configuration reference](docs/CONFIGURATION.md) rather than copying entity IDs from the screenshots.
 
+## Preview and configure EV Charging
+
+H2DC is a dashboard client, not an OCPP Charging Station Management System (CSMS). The complete path is:
+
+```text
+EV charger → OCPP WebSocket → compatible CSMS or Home Assistant integration → Home Assistant entities → H2DC
+```
+
+The EV Charging tab stays hidden until `entities.ocpp.status` is mapped. This prevents an installation without a charger from showing empty controls.
+
+### Preview without a charger
+
+The production and isolated preview cards can render the same deterministic, read-only charging session. Enable it in the visual editor under **EV Charging → Simulation mode**, or add the public flag:
+
+```yaml
+type: custom:h2dc-dashboard-card
+view: charging
+ev_charging_demo: true
+```
+
+The simulator shows a 7.40 kW active charge, connector telemetry, accumulated energy, and four example sessions. It is labelled **Simulated preview**, contains no `charge_control` mapping, and cannot issue a charger command. Turn simulation off before commissioning a real charger; mapped entities then become authoritative.
+
+### 1. Establish the charger connection
+
+1. Confirm the exact protocol offered by the charger: OCPP 1.6J, OCPP 2.0.1, or OCPP 2.1. Do not assume these are interchangeable—OCPP 2.0.1 is not backward compatible with 1.6.
+2. Select a CSMS or Home Assistant integration that explicitly supports that protocol and the charger's authentication method. H2DC does not bundle or select a CSMS.
+3. Give the charger a stable DHCP reservation, correct time/NTP settings, and reliable LAN access.
+4. In the charger interface, enter the WebSocket endpoint and charge-point identity exactly as required by the selected CSMS. Typical endpoints use `ws://` on a trusted local network or `wss://` with TLS; the precise path and identity format are integration-specific.
+5. Configure the required Basic Auth, token, client certificate, or other credential on both ends. Never expose an unauthenticated OCPP WebSocket to the public internet.
+6. Confirm in the CSMS that the charger reaches `Available` before adding H2DC.
+7. Add the compatible integration under **Settings → Devices & services** and verify that its charger entities update in Home Assistant.
+
+### 2. Map the Home Assistant entities
+
+Only `status` is required to reveal the tab. Every other measurement is optional and renders as **Unavailable** when it is absent.
+
+```yaml
+entities:
+  ocpp:
+    status: sensor.ev_charger_status
+    power: sensor.ev_charger_power
+    session_energy: sensor.ev_charger_session_energy
+    total_energy: sensor.ev_charger_total_energy
+    current: sensor.ev_charger_current
+    voltage: sensor.ev_charger_voltage
+    temperature: sensor.ev_charger_temperature
+    session_duration: sensor.ev_charger_session_duration
+    transaction_id: sensor.ev_charger_transaction_id
+    connector_id: sensor.ev_charger_connector_id
+    error_code: sensor.ev_charger_error_code
+    session_history: sensor.ev_charger_session_history
+    maximum_current: number.ev_charger_maximum_current
+    availability: binary_sensor.ev_charger_available
+    charge_control: switch.ev_charger
+```
+
+| Mapping | Expected domain and unit | Purpose |
+| --- | --- | --- |
+| `status` | Any entity with a connector lifecycle state | Required capability gate; accepts common 1.6J and 2.x state names. |
+| `power` | Sensor in W or kW | Instantaneous charging power. |
+| `session_energy` | Sensor in Wh or kWh | Energy delivered in the active transaction. |
+| `total_energy` | Sensor in Wh, kWh, or MWh | Lifetime delivered energy. |
+| `current` | Sensor in A or mA | Live connector current. |
+| `voltage` | Sensor in V or kV | Live connector voltage. |
+| `temperature` | Sensor in °C or C | Charger temperature when exposed. |
+| `session_duration` | Sensor in s, sec, min, or h | Active-session duration, normalized to minutes. |
+| `transaction_id` / `connector_id` / `error_code` | Text or sensor entity | Transaction and connector diagnostics. |
+| `availability` | Binary sensor | Charger connectivity or operational availability. |
+| `maximum_current` | Number or sensor in A | Displayed configured limit; H2DC does not change it. |
+| `charge_control` | Switch | Optional start/stop boundary; add only after physical acceptance. |
+
+### 3. Provide session history
+
+Map `session_history` to an entity with a `sessions` or `recent_sessions` attribute. Each array item may contain:
+
+```yaml
+sessions:
+  - id: transaction-2048
+    started_at: "2026-11-10T08:19:00+01:00"
+    stopped_at: "2026-11-10T10:50:00+01:00"
+    energy_kwh: 18.62
+    duration_minutes: 151
+    stop_reason: EV disconnected
+```
+
+Equivalent camel-case keys (`transactionId`, `startedAt`, `stoppedAt`, `energyKwh`, `durationMinutes`, `stopReason`) are also accepted. H2DC displays up to four recent sessions and does not fabricate missing history. Use a template sensor or companion integration if the selected OCPP integration does not expose a durable session list.
+
+### 4. Commission safely
+
+1. Confirm the lifecycle sequence `Available → Preparing/EVConnected → Charging → Finishing → Available` using a real vehicle.
+2. Compare displayed power, voltage, current, and session energy with the charger or a trusted meter; correct the source entity or its unit rather than adding a display-only multiplier.
+3. Disconnect the network and confirm the tab reports offline or unavailable instead of zero.
+4. Exercise a fault and confirm the real `error_code` is shown.
+5. Keep `charge_control` unmapped during read-only acceptance. Map it only after verifying the exact switch starts and stops the intended connector and the charger retains its local safety protections.
+6. Test on the isolated dashboard before copying the mapping to a production kiosk.
+
+If the tab remains hidden, verify that `status` is configured on every H2DC card used by the dashboard and that its entity ID exists. If a metric is unavailable, check its unit against the table above. If the charger never connects, resolve its WebSocket URL, identity, credentials, TLS trust, firewall, and OCPP-version compatibility at the CSMS layer before troubleshooting H2DC.
+
 ## Customize safely
 
 | Area | Configure | Important boundary |
 | --- | --- | --- |
 | Backgrounds | Global day/night images and per-view overrides | Only `/local/`, `/media/`, HTTPS, and `data:image/` sources are accepted. |
 | Energy | Entity mappings, polarity, flow threshold, PowerFlo options | H2DC does not send inverter commands. |
+| EV Charging | Normalized OCPP entity mappings and optional session history | The route is hidden without `status`; remote control is opt-in and switch-only. |
 | Cameras | Up to nine overview entities and dedicated medium-stream entities | Opening one camera starts only its selected stream. |
 | Lights | Up to eight curated lights and eight curated switches | Keep administrative, PoE, and camera-analysis switches out of household controls. |
 | Media | Named room groups and fallback players | Artwork uses Home Assistant media metadata first; Sonora is an optional fallback. |

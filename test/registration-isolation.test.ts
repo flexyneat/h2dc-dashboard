@@ -38,4 +38,13 @@ describe("custom-element registration isolation", () => {
     expect(production).not.toMatch(/from\s+["']\.\/h2dc-shared\.js["']/u);
     expect(preview).not.toMatch(/from\s+["']\.\/h2dc-shared\.js["']/u);
   });
+
+  it("ships the opt-in simulator while keeping preview registration isolated", async () => {
+    const production = await readFile(join(process.cwd(), "dist", "h2dc-dashboard.js"), "utf8");
+    const preview = await readFile(join(process.cwd(), "dist", "h2dc-dashboard-preview.js"), "utf8");
+    expect(production).toContain("h2dc_demo_ev_status");
+    expect(production).toContain("ev_charging_demo");
+    expect(preview).toContain("h2dc_demo_ev_status");
+    expect(preview).toContain("preview_ev_charging_demo");
+  });
 });

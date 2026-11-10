@@ -26,6 +26,18 @@ function validConfig(): Record<string, unknown> {
 }
 
 describe("parseConfig", () => {
+  it("accepts the explicit read-only EV simulation feature flag", () => {
+    const result = parseConfig({ ...validConfig(), ev_charging_demo: true });
+    expect(result.status).toBe("valid");
+    if (result.status === "valid") expect(result.config.evChargingDemo).toBe(true);
+  });
+
+  it("rejects non-boolean EV simulation values", () => {
+    const result = parseConfig({ ...validConfig(), ev_charging_demo: "true" });
+    expect(result.status).toBe("invalid");
+    if (result.status === "invalid") expect(result.issues).toContain("ev_charging_demo must be a boolean");
+  });
+
   it("normalizes the legacy snake_case boundary", () => {
     const result = parseConfig(validConfig());
     expect(result.status).toBe("valid");

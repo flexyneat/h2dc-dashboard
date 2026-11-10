@@ -29,6 +29,22 @@ entities:
     battery: sensor.battery_power
     grid: sensor.grid_power
     load: sensor.home_load
+  ocpp:
+    status: sensor.ev_charger_status
+    power: sensor.ev_charger_power
+    session_energy: sensor.ev_charger_session_energy
+    total_energy: sensor.ev_charger_total_energy
+    current: sensor.ev_charger_current
+    voltage: sensor.ev_charger_voltage
+    temperature: sensor.ev_charger_temperature
+    session_duration: sensor.ev_charger_session_duration
+    transaction_id: sensor.ev_charger_transaction_id
+    connector_id: sensor.ev_charger_connector_id
+    error_code: sensor.ev_charger_error_code
+    session_history: sensor.ev_charger_session_history
+    charge_control: switch.ev_charger
+    maximum_current: number.ev_charger_maximum_current
+    availability: binary_sensor.ev_charger_available
 battery_positive_is: discharge
 grid_positive_is: import
 flow_threshold_w: 40
@@ -60,6 +76,20 @@ Only `/local/`, `/media/`, HTTPS, and `data:image/` background sources are accep
 Schema version 2 adds reusable rooms, presentation tokens, contextual Home rules, and House Pulse sources. When contextual Home is enabled, its away state requires every configured room occupancy source to be available and clear; there is no hidden room-selection list. The visual editor accepts the room model as validated JSON so it cannot bypass the same schema boundary used for YAML. Older configurations migrate without deleting unrelated arrays, optional PowerFlo mappings, media settings, diagnostics, or per-view backgrounds.
 
 The Lights view renders the explicitly configured `light.*` entries first and the explicitly configured `switch.*` entries below them. Each section supports up to eight controls so the commissioned 1920 × 1200 kiosk remains scroll-free. Keep this list curated: administrative, camera-analytics, network, PoE, and tablet-management switches should not be exposed as household controls.
+
+## EV Charging with OCPP 1.6J and 2.x
+
+The EV Charging view is an optional projection over normalized entities from a compatible Home Assistant OCPP integration. It is hidden until `entities.ocpp.status` is mapped or the explicit read-only simulator is enabled, so installations without a charger keep the existing navigation and layout by default. H2DC does not act as an OCPP Central System and does not invent unsupported charger telemetry.
+
+For sales, layout and training previews without hardware, enable **EV Charging → Simulation mode** in the visual editor or set `ev_charging_demo: true` on the card. The simulator is visibly labelled, never maps `charge_control`, and never calls a Home Assistant service. Disable it before commissioning a real charger.
+
+Configure the charger to connect to the selected OCPP central-system integration first. After the integration creates its Home Assistant entities, map only the entities it actually exposes in the visual editor. The minimum useful mapping is `status`; power, session energy, current, voltage, temperature, transaction ID and session history remain independently optional. The adapter accepts OCPP 1.6J, 2.0.1 and 2.1 lifecycle terminology at this entity boundary; protocol negotiation and message handling remain the responsibility of the central-system integration. Unsupported measurands render as unavailable rather than zero.
+
+The first release supports one connector and an optional allowlisted `switch` for start/stop control. Session history is accepted from a mapped entity attribute named `sessions` or `recent_sessions`; each record may contain `id` or `transaction_id`, `started_at`, `stopped_at`, `energy_kwh`, `duration_minutes`, and `stop_reason`. Equivalent camel-case keys are accepted. This keeps the dashboard adapter portable while allowing a helper or future recorder-backed companion integration to provide durable history.
+
+The isolated `custom:h2dc-dashboard-preview` artifact also accepts the legacy alias `preview_ev_charging_demo: true`. Both custom elements use the same deterministic, local-only sample telemetry when simulation is explicitly enabled. With simulation disabled, the EV Charging route still requires a real `entities.ocpp.status` mapping and contains no fabricated live values.
+
+Because the charger model is not yet known, commissioning must verify its exact OCPP URL format, connector ID, authorization behavior, supported measurands, remote-start policy and current-limit support on the physical unit. Do not expose the OCPP WebSocket endpoint to the public internet without TLS, authentication and a deliberately scoped network policy.
 
 ## Sonora reverse-proxy headers
 

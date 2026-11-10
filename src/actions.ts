@@ -10,6 +10,7 @@ export type DashboardAction =
   | { readonly type: "media"; readonly entityId: string; readonly command: "media_play_pause" | "media_pause" | "media_previous_track" | "media_next_track" }
   | { readonly type: "alarm"; readonly entityId: string; readonly command: "alarm_arm_home" | "alarm_arm_away" | "alarm_arm_night" }
   | { readonly type: "alarm_disarm"; readonly entityId: string; readonly code: string }
+  | { readonly type: "ocpp_toggle"; readonly entityId: string; readonly allowedEntityId: string }
   | { readonly type: "poe_toggle"; readonly entityId: string; readonly allowedEntityId: string };
 
 /** Constrains a numeric service value to a safe inclusive range. */
@@ -67,6 +68,10 @@ export async function dispatchDashboardAction(hass: HomeAssistant, input: unknow
     }
     case "poe_toggle": {
       if (!isEntityId(input.allowedEntityId, "switch") || entityId !== input.allowedEntityId) throw new Error("PoE action requires the configured switch entity");
+      return hass.callService("switch", "toggle", { entity_id: entityId });
+    }
+    case "ocpp_toggle": {
+      if (!isEntityId(input.allowedEntityId, "switch") || entityId !== input.allowedEntityId) throw new Error("Charging action requires the configured control switch");
       return hass.callService("switch", "toggle", { entity_id: entityId });
     }
     default:

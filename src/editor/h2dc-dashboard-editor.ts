@@ -4,6 +4,7 @@ import {
   type EnergyEntities,
   type H2DCConfig,
   type KioskProfile,
+  type OcppEntities,
   type PowerFloOptions,
   type PowerFloStatistics,
   type PresentationDensity,
@@ -83,6 +84,25 @@ const ENERGY_ENTITY_FIELDS = [
   { key: "pv3Voltage", label: "PV3 voltage", domain: "sensor" },
   { key: "pv3Current", label: "PV3 current", domain: "sensor" },
 ] as const satisfies readonly { readonly key: keyof EnergyEntities; readonly label: string; readonly domain: string | readonly string[] }[];
+
+/** Optional version-neutral OCPP entity mappings; only status is required to expose the route. */
+const OCPP_ENTITY_FIELDS = [
+  { key: "status", label: "Connector status", domain: "sensor" },
+  { key: "power", label: "Charging power", domain: "sensor" },
+  { key: "sessionEnergy", label: "Session energy", domain: "sensor" },
+  { key: "totalEnergy", label: "Lifetime energy", domain: "sensor" },
+  { key: "current", label: "Charging current", domain: "sensor" },
+  { key: "voltage", label: "Supply voltage", domain: "sensor" },
+  { key: "temperature", label: "Charger temperature", domain: "sensor" },
+  { key: "sessionDuration", label: "Session duration", domain: "sensor" },
+  { key: "transactionId", label: "Transaction ID", domain: "sensor" },
+  { key: "connectorId", label: "Connector ID", domain: "sensor" },
+  { key: "errorCode", label: "OCPP error code", domain: "sensor" },
+  { key: "sessionHistory", label: "Session-history helper", domain: "sensor" },
+  { key: "chargeControl", label: "Charge control", domain: "switch" },
+  { key: "maximumCurrent", label: "Maximum current", domain: ["number", "sensor"] },
+  { key: "availability", label: "Availability", domain: ["switch", "binary_sensor", "sensor"] },
+] as const satisfies readonly { readonly key: keyof OcppEntities; readonly label: string; readonly domain: string | readonly string[] }[];
 
 /** Numeric PowerFlo settings that preserve estimate and observation semantics. */
 const POWERFLO_NUMBER_FIELDS = [
@@ -170,6 +190,9 @@ export class H2DCDashboardEditor extends HTMLElement {
           candidate = { ...current, sonoraUrl: value };
         }
         break;
+      case "evChargingDemo":
+        candidate = { ...current, evChargingDemo: value === "true" };
+        break;
       case "flowThresholdW":
         candidate = { ...current, flowThresholdW: Number(value) };
         break;
@@ -243,6 +266,9 @@ export class H2DCDashboardEditor extends HTMLElement {
         } else if (key.startsWith("energy.")) {
           const field = key.slice("energy.".length) as keyof EnergyEntities;
           candidate = { ...current, entities: { ...current.entities, energy: { ...current.entities.energy, [field]: value } } };
+        } else if (key.startsWith("ocpp.")) {
+          const field = key.slice("ocpp.".length) as keyof OcppEntities;
+          candidate = { ...current, entities: { ...current.entities, ocpp: { ...current.entities.ocpp, [field]: value } } };
         } else if (key.startsWith("powerFlo.statistics.")) {
           const field = key.slice("powerFlo.statistics.".length) as keyof PowerFloStatistics;
           candidate = { ...current, powerFlo: { ...current.powerFlo, statistics: { ...current.powerFlo.statistics, [field]: value } } };
@@ -273,6 +299,7 @@ export class H2DCDashboardEditor extends HTMLElement {
     const config = this.#config;
     const energy = config.entities.energy;
     const energyPickers = ENERGY_ENTITY_FIELDS.map((field) => picker(field.label, `energy.${String(field.key)}`, energy[field.key], field.domain)).join("");
+    const ocppPickers = OCPP_ENTITY_FIELDS.map((field) => picker(field.label, `ocpp.${String(field.key)}`, config.entities.ocpp[field.key], field.domain)).join("");
     const powerFloNumbers = POWERFLO_NUMBER_FIELDS.map(([key, label]) => numberField(key, label, config.powerFlo[key])).join("");
     const powerFloBooleans = POWERFLO_BOOLEAN_FIELDS.map(([key, label]) => booleanField(key, label, config.powerFlo[key])).join("");
     const report = buildOnboardingReport(config, this.#hass);
@@ -286,6 +313,10 @@ export class H2DCDashboardEditor extends HTMLElement {
     const editorForm = this.#root.querySelector("form");
     // Keep route controls near the current-view selector without coupling them to the large template string.
     editorForm?.insertBefore(navigationSection, editorForm.children.item(2));
+    const chargingSection = document.createElement("fieldset");
+    chargingSection.innerHTML = `<legend>EV Charging · OCPP 1.6J / 2.x</legend><label>Simulation mode<select data-key="evChargingDemo"><option value="false" ${!config.evChargingDemo ? "selected" : ""}>Off · use mapped charger</option><option value="true" ${config.evChargingDemo ? "selected" : ""}>On · read-only sample data</option></select></label>${ocppPickers}<p>EV Charging stays hidden until a connector-status entity is mapped or simulation mode is enabled. Simulation never exposes a charger command.</p>`;
+    // Keep optional charger mappings together and outside the PowerFlo-specific configuration surface.
+    editorForm?.insertBefore(chargingSection, editorForm.querySelector("fieldset:last-child"));
     const hass = this.#hass;
     if (hass !== undefined) {
       this.#root.querySelectorAll<HaEntityPickerElement>("ha-entity-picker").forEach((element) => {

@@ -1,10 +1,13 @@
-# H2DC Dashboard v1.2.0
+# H2DC Dashboard v1.3.0
 
-H2DC Dashboard v1.2.0 adds portable configuration, capability-aware navigation, House Pulse summaries, restored backgrounds, and faster Security loading to the commissioned wall-tablet interface.
+H2DC Dashboard v1.3.0 adds a version-neutral EV Charging workspace, a production-safe read-only simulator, live OCPP telemetry projection, and recent charging-session history.
 
 ## Completed work
 
-- Shipped one configurable Home Assistant custom card with Home, Security, Energy, Climate, Lights, Media, Sonos, and System views.
+- Shipped one configurable Home Assistant custom card with Home, Security, Energy, EV Charging, Climate, Lights, Media, Sonos, and System views.
+- Added normalized OCPP 1.6J, 2.0.1 and 2.1 entity mappings for connector state, power, current, voltage, temperature, session energy, lifetime energy, transaction identity, availability and recent history.
+- Added an opt-in `ev_charging_demo` feature flag and visual-editor toggle that renders labelled sample telemetry without exposing a charger command.
+- Added a complete charger onboarding and entity-mapping guide with security, acceptance and troubleshooting checkpoints.
 - Added the animated PowerFlo energy overview, focused energy detail dialogs, consistent live-value formatting, and PowerFlo configuration support.
 - Added a nine-camera security layout, medium-stream camera dialogs, alarm controls, and keypad support.
 - Added room-aware lighting and switch controls with whole-card touch targets, dimming controls, and accessible keyboard operation.
@@ -14,7 +17,7 @@ H2DC Dashboard v1.2.0 adds portable configuration, capability-aware navigation, 
 - Added media artwork, grouped room controls, and an isolated Sonora embed that prevents the external controller from replacing the H2DC shell.
 - Added day and night backgrounds, weather-aware presentation, contextual home summaries, and reduced-motion behavior.
 - Added a visual editor, schema validation, room configuration, onboarding guidance, and actionable empty and error states.
-- Added configurable labels and visibility for all eight routes, with automatic Energy hiding when PowerFlo is unavailable.
+- Added configurable labels and visibility for all nine routes, with automatic Energy hiding when PowerFlo is unavailable and EV Charging hiding until a charger mapping or the explicit simulator is enabled.
 - Added portable House Pulse summaries and room-based climate configuration.
 - Restored verified day/night backgrounds across every route.
 - Prioritized medium-channel Security thumbnails while retaining medium-channel popup streams.
