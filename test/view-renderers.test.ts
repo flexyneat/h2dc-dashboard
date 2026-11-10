@@ -315,6 +315,16 @@ describe("renderView", () => {
     expect(output).not.toContain("<code>switch.tablet_poe</code>");
   });
 
+  it("renders the EV simulation helper beside system controls", () => {
+    const base = configFor("diagnostics");
+    const config = { ...base, entities: { ...base.entities, diagnostics: { ...base.entities.diagnostics, evChargingDemoControl: "input_boolean.h2dc_ev_charging_simulation" } } };
+    const fixture = hassFixture();
+    const hass = { ...fixture.hass, states: { ...fixture.hass.states, "input_boolean.h2dc_ev_charging_simulation": { state: "on", attributes: {} } } };
+    const output = renderView({ config, hass, now: new Date(), reducedMotion: false, evChargingDemoActive: true });
+    expect(output).toContain('data-action="ev-demo-toggle"');
+    expect(output).toContain("EV simulation");
+  });
+
   it("stops topology motion for reduced-motion users", () => {
     const fixture = hassFixture();
     const output = renderView({ config: configFor("energy"), hass: fixture.hass, now: new Date(), reducedMotion: true });

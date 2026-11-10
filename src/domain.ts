@@ -177,6 +177,7 @@ export interface DiagnosticEntities {
   readonly currentPage?: string;
   readonly poe?: string;
   readonly poePower?: string;
+  readonly evChargingDemoControl?: string;
 }
 
 /** Optional version-neutral OCPP telemetry and controls exposed by the installed Home Assistant integration. */

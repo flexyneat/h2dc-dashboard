@@ -16,6 +16,7 @@ export interface RenderContext {
   readonly reducedMotion: boolean;
   readonly mediaArtwork?: MediaArtwork;
   readonly powerFloAvailable?: boolean;
+  readonly evChargingDemoActive?: boolean;
 }
 
 /** Returns an escaped Material Design icon element. */
@@ -82,7 +83,7 @@ function viewPath(config: H2DCConfig, view: H2DCView): string {
 function header(context: RenderContext, eyebrow: string, summary: string): string {
   const tabs = H2DC_VIEWS.filter((view) => context.config.navigation[view].visible
     && (view !== "energy" || context.powerFloAvailable !== false)
-    && (view !== "charging" || isOcppConfigured(context.config.entities.ocpp)));
+    && (view !== "charging" || (isOcppConfigured(context.config.entities.ocpp) && context.evChargingDemoActive !== false)));
   const date = new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long" }).format(context.now);
   const dateHeading = context.config.view === "home" ? `<h1>${escapeHtml(date)}</h1>` : "";
   if (context.config.view === "home") eyebrow = resolveHomeContext(context.config, context.hass, context.now).eyebrow;
@@ -432,15 +433,15 @@ function renderSonos(context: RenderContext): string {
 }
 
 /** Renders one read-only diagnostic entity. */
-function diagnostic(context: RenderContext, mdi: string, label: string, entityId: string | undefined, suffix = "", controllable = false): string {
+function diagnostic(context: RenderContext, mdi: string, label: string, entityId: string | undefined, suffix = "", action?: "poe-toggle" | "ev-demo-toggle"): string {
   const numeric = entityId === undefined ? { status: "unavailable" as const } : readNumericState(context.hass, entityId);
   // Binary and text diagnostics retain their state words; only finite telemetry is decimalized.
   const state = numeric.status === "available" ? formatDecimal(numeric.value) : stateText(context, entityId);
   const available = state !== "Unavailable";
   const actionHint = state === "on" ? "Tap to turn off" : state === "off" ? "Tap to turn on" : "Control unavailable";
-  const body = `<span class="round">${icon(mdi)}</span><div><small>${escapeHtml(label)}</small><strong>${escapeHtml(state)}${available ? escapeHtml(suffix) : ""}</strong><span class="diagnostic-hint">${controllable && available ? actionHint : available ? "Live status" : "Not configured"}</span></div>`;
-  return controllable && entityId !== undefined
-    ? `<button class="glass diagnostic diagnostic-control ${available ? "available" : "unavailable"}" data-action="poe-toggle" data-entity="${escapeHtml(entityId)}" ${available ? "" : "disabled"}>${body}</button>`
+  const body = `<span class="round">${icon(mdi)}</span><div><small>${escapeHtml(label)}</small><strong>${escapeHtml(state)}${available ? escapeHtml(suffix) : ""}</strong><span class="diagnostic-hint">${action !== undefined && available ? actionHint : available ? "Live status" : "Not configured"}</span></div>`;
+  return action !== undefined && entityId !== undefined
+    ? `<button class="glass diagnostic diagnostic-control ${available ? "available" : "unavailable"}" data-action="${action}" data-entity="${escapeHtml(entityId)}" ${available ? "" : "disabled"}>${body}</button>`
     : `<section class="glass diagnostic ${available ? "available" : "unavailable"}">${body}</section>`;
 }
 
@@ -453,7 +454,7 @@ function renderDiagnostics(context: RenderContext): string {
     ["mdi:ethernet", "PoE port", entities.poe, ""], ["mdi:flash", "PoE draw", entities.poePower, " W"],
   ];
   const unavailable = values.filter(([, , entityId]) => stateText(context, entityId) === "Unavailable").length;
-  return `${header(context, "System overview", unavailable === 0 ? "Tablet and PoE telemetry online" : `${unavailable} diagnostics unavailable`)}<main class="page-grid diagnostics-grid">${values.map(([mdi, label, entityId, suffix]) => diagnostic(context, mdi, label, entityId, suffix, label === "PoE port")).join("")}<section class="glass diagnostic-note"><div class="card-title">Commissioning status</div><p>Tablet telemetry remains read-only. The PoE control requires confirmation before Home Assistant changes the wall-tablet power feed.</p></section></main>`;
+  return `${header(context, "System overview", unavailable === 0 ? "Tablet and PoE telemetry online" : `${unavailable} diagnostics unavailable`)}<main class="page-grid diagnostics-grid">${values.map(([mdi, label, entityId, suffix]) => diagnostic(context, mdi, label, entityId, suffix, label === "PoE port" ? "poe-toggle" : undefined)).join("")}${diagnostic(context, "mdi:ev-station", "EV simulation", entities.evChargingDemoControl, "", "ev-demo-toggle")}<section class="glass diagnostic-note"><div class="card-title">Commissioning status</div><p>Tablet telemetry remains read-only. PoE changes require confirmation; EV simulation only changes whether the demonstration tab is available.</p></section></main>`;
 }
 
 /** Renders one stable H2DC route with exhaustive handling. */

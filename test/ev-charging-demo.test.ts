@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { isEvChargingDemoRequested, withEvChargingDemoConfig, withEvChargingDemoStates } from "../src/ev-charging-demo";
+import { isEvChargingDemoActive, isEvChargingDemoConfigured, isEvChargingDemoRequested, withEvChargingDemoConfig, withEvChargingDemoStates } from "../src/ev-charging-demo";
+import { createDraftConfig } from "../src/config-schema";
 import type { HomeAssistant } from "../src/home-assistant";
 
 /** Builds the smallest Home Assistant boundary needed to validate preview-state isolation. */
@@ -39,6 +40,30 @@ describe("EV charging preview demo", () => {
   it("retains the legacy isolated-preview flag while promoting the public flag", () => {
     const result = withEvChargingDemoConfig({ preview_ev_charging_demo: true });
     expect(result).toMatchObject({ ev_charging_demo: true });
+  });
+
+  it("uses a mapped helper as the live simulator source of truth", () => {
+    const raw = { type: "custom:h2dc-dashboard-card", entities: { diagnostics: { ev_charging_demo_control: "input_boolean.h2dc_ev_charging_simulation" } } };
+    expect(isEvChargingDemoConfigured(raw)).toBe(true);
+    expect(withEvChargingDemoConfig(raw)).toMatchObject({
+      entities: {
+        diagnostics: { ev_charging_demo_control: "input_boolean.h2dc_ev_charging_simulation" },
+        ocpp: { status: "sensor.h2dc_demo_ev_status" },
+      },
+    });
+  });
+
+  it("gives the mapped helper precedence over the static demo flag", () => {
+    const config = createDraftConfig(withEvChargingDemoConfig({
+      type: "custom:h2dc-dashboard-card",
+      view: "charging",
+      ev_charging_demo: true,
+      entities: { diagnostics: { ev_charging_demo_control: "input_boolean.h2dc_ev_charging_simulation" } },
+    }));
+    const off = { ...hassFixture(), states: { "input_boolean.h2dc_ev_charging_simulation": { state: "off", attributes: {} } } };
+    const on = { ...off, states: { "input_boolean.h2dc_ev_charging_simulation": { state: "on", attributes: {} } } };
+    expect(isEvChargingDemoActive(config, off)).toBe(false);
+    expect(isEvChargingDemoActive(config, on)).toBe(true);
   });
 
   it("adds deterministic demo states while preserving live state and service methods", () => {

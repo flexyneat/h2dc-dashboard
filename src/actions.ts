@@ -11,6 +11,7 @@ export type DashboardAction =
   | { readonly type: "alarm"; readonly entityId: string; readonly command: "alarm_arm_home" | "alarm_arm_away" | "alarm_arm_night" }
   | { readonly type: "alarm_disarm"; readonly entityId: string; readonly code: string }
   | { readonly type: "ocpp_toggle"; readonly entityId: string; readonly allowedEntityId: string }
+  | { readonly type: "ev_demo_toggle"; readonly entityId: string; readonly allowedEntityId: string }
   | { readonly type: "poe_toggle"; readonly entityId: string; readonly allowedEntityId: string };
 
 /** Constrains a numeric service value to a safe inclusive range. */
@@ -73,6 +74,10 @@ export async function dispatchDashboardAction(hass: HomeAssistant, input: unknow
     case "ocpp_toggle": {
       if (!isEntityId(input.allowedEntityId, "switch") || entityId !== input.allowedEntityId) throw new Error("Charging action requires the configured control switch");
       return hass.callService("switch", "toggle", { entity_id: entityId });
+    }
+    case "ev_demo_toggle": {
+      if (!isEntityId(input.allowedEntityId, "input_boolean") || entityId !== input.allowedEntityId) throw new Error("EV simulation action requires the configured helper entity");
+      return hass.callService("input_boolean", "toggle", { entity_id: entityId });
     }
     default:
       throw new Error("Unsupported dashboard action");

@@ -477,7 +477,8 @@ function C(t) {
 		screen: "screen",
 		currentPage: "current_page",
 		poe: "poe",
-		poePower: "poe_power"
+		poePower: "poe_power",
+		evChargingDemoControl: "ev_charging_demo_control"
 	}, "entities.diagnostics", n), ue = S(i.ocpp, {
 		status: "status",
 		power: "power",
@@ -591,7 +592,8 @@ function ue(t) {
 				screen: "screen",
 				currentPage: "current_page",
 				poe: "poe",
-				poePower: "poe_power"
+				poePower: "poe_power",
+				evChargingDemoControl: "ev_charging_demo_control"
 			}, "entities.diagnostics", []),
 			ocpp: S(r.ocpp, {
 				status: "status",
@@ -692,6 +694,9 @@ async function w(e, t) {
 		case "ocpp_toggle":
 			if (!_(t.allowedEntityId, "switch") || n !== t.allowedEntityId) throw Error("Charging action requires the configured control switch");
 			return e.callService("switch", "toggle", { entity_id: n });
+		case "ev_demo_toggle":
+			if (!_(t.allowedEntityId, "input_boolean") || n !== t.allowedEntityId) throw Error("EV simulation action requires the configured helper entity");
+			return e.callService("input_boolean", "toggle", { entity_id: n });
 		default: throw Error("Unsupported dashboard action");
 	}
 }
@@ -947,7 +952,17 @@ function Ee(e) {
 	return g(e) && (e.ev_charging_demo === !0 || e.preview_ev_charging_demo === !0);
 }
 function De(e) {
-	if (!Ee(e) || !g(e)) return e;
+	if (Ee(e)) return !0;
+	if (!g(e) || !g(e.entities) || !g(e.entities.diagnostics)) return !1;
+	let t = e.entities.diagnostics;
+	return typeof t.ev_charging_demo_control == "string" || typeof t.evChargingDemoControl == "string";
+}
+function Oe(e, t) {
+	let n = e.entities.diagnostics.evChargingDemoControl;
+	return n === void 0 ? e.evChargingDemo : t.states[n]?.state === "on";
+}
+function ke(e) {
+	if (!De(e) || !g(e)) return e;
 	let t = g(e.entities) ? e.entities : {};
 	return {
 		...e,
@@ -979,7 +994,7 @@ function I(e, t = {}) {
 		attributes: t
 	};
 }
-function Oe(e) {
+function Ae(e) {
 	return {
 		...e,
 		states: {
@@ -1033,10 +1048,10 @@ function Oe(e) {
 	};
 }
 // src/onboarding.ts
-function ke(e) {
+function je(e) {
 	return e.some((e) => e.status === "blocked") ? "blocked" : e.some((e) => e.status === "warning") ? "warning" : "ready";
 }
-function Ae(e, t, n) {
+function Me(e, t, n) {
 	let r = e.filter((e) => e !== "");
 	if (r.length !== e.length) return {
 		status: "blocked",
@@ -1055,13 +1070,13 @@ function Ae(e, t, n) {
 		detail: `${i.length} mapped ${i.length === 1 ? "entity is" : "entities are"} not available in Home Assistant.`
 	};
 }
-function je(e, t) {
-	let n = Ae([
+function Ne(e, t) {
+	let n = Me([
 		e.entities.alarm,
 		e.entities.climate,
 		e.entities.weather,
 		e.entities.roomTemperature
-	], t, "Alarm, climate, weather, and room temperature are ready."), r = Ae([
+	], t, "Alarm, climate, weather, and room temperature are ready."), r = Me([
 		e.entities.energy.freshness,
 		e.entities.energy.solar,
 		e.entities.energy.batterySoc,
@@ -1116,12 +1131,12 @@ function je(e, t) {
 		detail: n.detail
 	}));
 	return {
-		status: ke(c),
+		status: je(c),
 		sections: c
 	};
 }
 // src/editor/rooms-editor.ts
-function Me(e, t) {
+function Pe(e, t) {
 	let n;
 	try {
 		n = JSON.parse(t);
@@ -1144,14 +1159,14 @@ function Me(e, t) {
 	};
 }
 // src/editor/h2dc-dashboard-editor.ts
-function Ne(e) {
+function Fe(e) {
 	if (e instanceof HTMLElement && e.dataset.key !== void 0 && (e instanceof HTMLInputElement || e instanceof HTMLSelectElement || e instanceof HTMLTextAreaElement || e.tagName.toLowerCase() === "ha-entity-picker")) return e;
 }
 function L(e, t, n, r) {
 	let i = typeof r == "string" ? [r] : r;
 	return `<ha-entity-picker label="${O(e)}" data-key="${O(t)}" value="${O(n ?? "")}" include-domains='${O(JSON.stringify(i))}' allow-custom-entity></ha-entity-picker>`;
 }
-var Pe = [
+var Ie = [
 	{
 		key: "freshness",
 		label: "Telemetry freshness",
@@ -1362,7 +1377,7 @@ var Pe = [
 		label: "PV3 current",
 		domain: "sensor"
 	}
-], Fe = [
+], Le = [
 	{
 		key: "status",
 		label: "Connector status",
@@ -1442,7 +1457,7 @@ var Pe = [
 			"sensor"
 		]
 	}
-], Ie = [
+], Re = [
 	["inverterCapacityKw", "Inverter capacity (kW)"],
 	["batteryCapacityKwh", "Battery capacity (kWh)"],
 	["solarCapacityKw", "Solar capacity (kWp)"],
@@ -1461,7 +1476,7 @@ var Pe = [
 	["exportDurationSeconds", "Export duration (seconds)"],
 	["readinessMinCoverage", "Readiness minimum coverage"],
 	["flowReleaseW", "Flow release threshold (W)"]
-], Le = [
+], ze = [
 	["useLearnedTaper", "Use qualified learned taper"],
 	["energySourcesVerified", "Energy counter roles verified"],
 	["readinessEnabled", "Show readiness and simulator"],
@@ -1472,13 +1487,13 @@ var Pe = [
 	["solarOutlookEnabled", "Show solar outlook"],
 	["estimateAccuracyEnabled", "Collect estimate accuracy evidence"]
 ];
-function Re(e, t, n) {
+function Be(e, t, n) {
 	return `<label>${O(t)}<input data-key="powerFlo.${O(String(e))}" type="number" step="any" value="${O(String(n ?? ""))}"></label>`;
 }
-function ze(e, t, n) {
+function Ve(e, t, n) {
 	return `<label>${O(t)}<select data-key="powerFlo.${O(String(e))}"><option value="true" ${n === !0 ? "selected" : ""}>Yes</option><option value="false" ${n === !1 ? "selected" : ""}>No</option></select></label>`;
 }
-var Be = class extends HTMLElement {
+var He = class extends HTMLElement {
 	#e;
 	#t;
 	#n;
@@ -1495,7 +1510,7 @@ var Be = class extends HTMLElement {
 		this.#t = t.status === "valid" ? t.config : ue(e), this.#r = void 0, this.#i = void 0, this.#o();
 	}
 	#a(t) {
-		let n = Ne(t.target);
+		let n = Fe(t.target);
 		if (n === void 0 || this.#t === void 0) return;
 		let r = n.dataset.key, i = n.value ?? "";
 		if (r === void 0) return;
@@ -1647,7 +1662,7 @@ var Be = class extends HTMLElement {
 				break;
 			case "roomsJson":
 				this.#r = i;
-				let t = Me(a, i);
+				let t = Pe(a, i);
 				if (t.status === "invalid") {
 					this.#i = t.message, this.#o();
 					return;
@@ -1724,7 +1739,7 @@ var Be = class extends HTMLElement {
 				}
 			};
 			else if (r.startsWith("powerFlo.")) {
-				let e = r.slice(9), t = Ie.some(([t]) => t === e), n = Le.some(([t]) => t === e);
+				let e = r.slice(9), t = Re.some(([t]) => t === e), n = ze.some(([t]) => t === e);
 				o = {
 					...a,
 					powerFlo: {
@@ -1743,7 +1758,7 @@ var Be = class extends HTMLElement {
 	}
 	#o() {
 		if (this.#t === void 0) return;
-		let t = this.#t, n = t.entities.energy, r = Pe.map((e) => L(e.label, `energy.${String(e.key)}`, n[e.key], e.domain)).join(""), i = Fe.map((e) => L(e.label, `ocpp.${String(e.key)}`, t.entities.ocpp[e.key], e.domain)).join(""), a = Ie.map(([e, n]) => Re(e, n, t.powerFlo[e])).join(""), o = Le.map(([e, n]) => ze(e, n, t.powerFlo[e])).join(""), s = je(t, this.#n), c = s.sections.map((e) => `<li data-status="${e.status}"><strong>${O(e.label)}</strong><span>${O(e.detail)}</span></li>`).join(""), l = this.#r ?? JSON.stringify(t.rooms, null, 2), u = this.#i === void 0 ? "" : `<p id="rooms-json-error" class="editor-error" role="alert">${O(this.#i)}</p>`, d = e.map((e) => `<div class="tab-config"><label>${O(m[e].label)} label<input data-key="navigation.${e}.label" value="${O(t.navigation[e].label)}" maxlength="24"></label><label>Visible<select data-key="navigation.${e}.visible"><option value="true" ${t.navigation[e].visible ? "selected" : ""}>Yes</option><option value="false" ${t.navigation[e].visible ? "" : "selected"}>No</option></select></label></div>`).join("");
+		let t = this.#t, n = t.entities.energy, r = Ie.map((e) => L(e.label, `energy.${String(e.key)}`, n[e.key], e.domain)).join(""), i = Le.map((e) => L(e.label, `ocpp.${String(e.key)}`, t.entities.ocpp[e.key], e.domain)).join(""), a = Re.map(([e, n]) => Be(e, n, t.powerFlo[e])).join(""), o = ze.map(([e, n]) => Ve(e, n, t.powerFlo[e])).join(""), s = Ne(t, this.#n), c = s.sections.map((e) => `<li data-status="${e.status}"><strong>${O(e.label)}</strong><span>${O(e.detail)}</span></li>`).join(""), l = this.#r ?? JSON.stringify(t.rooms, null, 2), u = this.#i === void 0 ? "" : `<p id="rooms-json-error" class="editor-error" role="alert">${O(this.#i)}</p>`, d = e.map((e) => `<div class="tab-config"><label>${O(m[e].label)} label<input data-key="navigation.${e}.label" value="${O(t.navigation[e].label)}" maxlength="24"></label><label>Visible<select data-key="navigation.${e}.visible"><option value="true" ${t.navigation[e].visible ? "selected" : ""}>Yes</option><option value="false" ${t.navigation[e].visible ? "" : "selected"}>No</option></select></label></div>`).join("");
 		this.#e.innerHTML = `<style>:host{display:block;color:var(--primary-text-color)}form{display:grid;gap:var(--h2dc-editor-gap,1rem);padding:var(--h2dc-editor-pad,.5rem)}fieldset{display:grid;gap:var(--h2dc-editor-field-gap,.75rem);border:1px solid var(--divider-color);border-radius:var(--ha-card-border-radius,.75rem);padding:var(--h2dc-editor-fieldset-pad,1rem)}legend{font-weight:700}label{display:grid;gap:var(--h2dc-editor-label-gap,.375rem)}input,select,textarea{min-height:44px;padding:var(--h2dc-editor-control-pad,.5rem);border:1px solid var(--divider-color);border-radius:var(--h2dc-editor-control-radius,.5rem);background:var(--card-background-color);color:inherit}textarea{min-block-size:12rem;font:inherit;font-family:ui-monospace,monospace;resize:block}.editor-error{margin:0;color:var(--error-color)}.readiness{margin:0;padding:0;list-style:none}.readiness li{display:grid;gap:.25rem;padding:.75rem 0;border-block-end:1px solid var(--divider-color)}.readiness span{color:var(--secondary-text-color)}.readiness [data-status=blocked] strong{color:var(--error-color)}.readiness [data-status=warning] strong{color:var(--warning-color,var(--primary-color))}</style><form><fieldset><legend>Setup readiness · ${s.status}</legend><ul class="readiness">${c}</ul></fieldset><fieldset><legend>View</legend><label>View<select data-key="view">${e.map((e) => `<option value="${e}" ${t.view === e ? "selected" : ""}>${e}</option>`).join("")}</select></label><label>Dashboard path<input data-key="dashboardPath" value="${O(t.dashboardPath)}"></label><label>Sonora URL<input data-key="sonoraUrl" type="url" value="${O(t.sonoraUrl ?? "")}"></label></fieldset><fieldset><legend>Core entities</legend>${L("Alarm", "entities.alarm", t.entities.alarm, "alarm_control_panel")}${L("Climate", "entities.climate", t.entities.climate, "climate")}${L("Weather", "entities.weather", t.entities.weather, "weather")}${L("Room temperature", "entities.roomTemperature", t.entities.roomTemperature, "sensor")}</fieldset><fieldset><legend>Presentation</legend><label>Kiosk profile<select data-key="presentation.kioskProfile">${[
 			"wall_16_10",
 			"desktop_landscape",
@@ -1766,16 +1781,16 @@ var Be = class extends HTMLElement {
 			e.hass = g;
 		});
 	}
-}, Ve = [
+}, Ue = [
 	"access",
 	"presence",
 	"comfort",
 	"attention"
 ];
-function He(e, t) {
+function We(e, t) {
 	return e.endsWith("_battery_low") || t.includes("battery");
 }
-function Ue(e, t) {
+function Ge(e, t) {
 	let n = t.toLowerCase();
 	return e === "attention" ? ![
 		"0",
@@ -1794,7 +1809,7 @@ function Ue(e, t) {
 		"present"
 	].includes(n);
 }
-function We(e, t) {
+function Ke(e, t) {
 	switch (e) {
 		case "access": return ["Access", "Live state of the configured doors and locks."];
 		case "presence": return ["Presence", "Rooms currently reporting occupancy or presence."];
@@ -1803,8 +1818,8 @@ function We(e, t) {
 		default: return e;
 	}
 }
-function Ge(e, t, n) {
-	let r = e.entities.housePulse[n], i = n === "attention" && r.length > 0 && r.every((e) => He(e.entity, e.icon)), [a, o] = We(n, i);
+function qe(e, t, n) {
+	let r = e.entities.housePulse[n], i = n === "attention" && r.length > 0 && r.every((e) => We(e.entity, e.icon)), [a, o] = Ke(n, i);
 	if (r.length === 0) return {
 		category: n,
 		title: a,
@@ -1829,7 +1844,7 @@ function Ge(e, t, n) {
 				value: i
 			};
 		}
-		let a = Ue(n, r.entity.state), o = n === "presence" ? a ? "Occupied" : "Clear" : n === "access" ? a ? "Open or unlocked" : "Secure" : a ? i ? "Battery low" : "Needs attention" : "Clear";
+		let a = Ge(n, r.entity.state), o = n === "presence" ? a ? "Occupied" : "Clear" : n === "access" ? a ? "Open or unlocked" : "Secure" : a ? i ? "Battery low" : "Needs attention" : "Clear";
 		return {
 			label: e.label,
 			icon: e.icon,
@@ -1883,10 +1898,10 @@ function Ge(e, t, n) {
 	};
 }
 // src/focus-restoration.ts
-function Ke(e) {
+function Je(e) {
 	return !e;
 }
-function qe(e, t) {
+function Ye(e, t) {
 	e !== void 0 && t(() => e.focus({ preventScroll: !0 }));
 }
 // src/media-artwork.ts
@@ -1894,10 +1909,10 @@ function R(e, t) {
 	let n = e?.attributes[t];
 	return typeof n == "string" ? n.trim() : "";
 }
-function Je(e) {
+function Xe(e) {
 	if (typeof e == "string" && (e.startsWith("/api/") || e.startsWith("/local/") || e.startsWith("/media/") || e.startsWith("https://") || e.startsWith("data:image/"))) return e;
 }
-function Ye(e) {
+function Ze(e) {
 	let t = [
 		e.primary,
 		e.dining,
@@ -1910,14 +1925,14 @@ function Ye(e) {
 	];
 	return [...new Set(t.filter((e) => e !== void 0 && e !== ""))];
 }
-function Xe(e, t) {
+function Qe(e, t) {
 	let n = {
 		playing: 4,
 		buffering: 3,
 		paused: 2,
 		idle: 1
 	}, r, i = -1;
-	for (let a of Ye(t)) {
+	for (let a of Ze(t)) {
 		let t = e.states[a];
 		if (t === void 0 || R(t, "media_title") === "") continue;
 		let o = n[t.state] ?? 0;
@@ -1928,8 +1943,8 @@ function Xe(e, t) {
 	}
 	return r;
 }
-function Ze(e, t) {
-	let n = Xe(e, t)?.entity, r = R(n, "media_title"), i = R(n, "media_artist"), a = Je(n?.attributes.entity_picture);
+function $e(e, t) {
+	let n = Qe(e, t)?.entity, r = R(n, "media_title"), i = R(n, "media_artist"), a = Xe(n?.attributes.entity_picture);
 	if (a !== void 0) return {
 		status: "available",
 		source: "home-assistant",
@@ -1940,12 +1955,12 @@ function Ze(e, t) {
 		status: "unavailable",
 		reason: "no-track"
 	};
-	for (let n of Ye(t)) {
+	for (let n of Ze(t)) {
 		let t = e.states[n];
 		if (t === void 0 || R(t, "media_title") !== r) continue;
 		let a = R(t, "media_artist");
 		if (i !== "" && a !== "" && a !== i) continue;
-		let o = Je(t.attributes.entity_picture);
+		let o = Xe(t.attributes.entity_picture);
 		if (o !== void 0) return {
 			status: "available",
 			source: "home-assistant",
@@ -1958,7 +1973,7 @@ function Ze(e, t) {
 		reason: "no-artwork"
 	};
 }
-function Qe(e) {
+function et(e) {
 	if (typeof e != "object" || !e || !("zones" in e) || !Array.isArray(e.zones)) return;
 	let t = [];
 	for (let n of e.zones) {
@@ -1976,7 +1991,7 @@ function Qe(e) {
 	}
 	return { zones: t };
 }
-function $e(e, t, n, r) {
+function tt(e, t, n, r) {
 	let i;
 	try {
 		i = new URL(t);
@@ -2021,7 +2036,7 @@ function $e(e, t, n, r) {
 		alt: `${n} album artwork`
 	};
 }
-async function et(e, t, n, r) {
+async function nt(e, t, n, r) {
 	let i;
 	try {
 		i = new URL("/api/state", e);
@@ -2047,11 +2062,11 @@ async function et(e, t, n, r) {
 			status: "unavailable",
 			reason: "no-match"
 		};
-		let o = Qe(await a.json());
+		let o = et(await a.json());
 		return o === void 0 ? {
 			status: "unavailable",
 			reason: "no-match"
-		} : $e(o, e, t, n);
+		} : tt(o, e, t, n);
 	} catch {
 		return {
 			status: "unavailable",
@@ -2059,12 +2074,12 @@ async function et(e, t, n, r) {
 		};
 	}
 }
-var tt = class {
+var rt = class {
 	fetcher;
 	#e;
 	#t = "";
 	#n;
-	constructor(e = et) {
+	constructor(e = nt) {
 		this.fetcher = e;
 	}
 	get artwork() {
@@ -2144,7 +2159,7 @@ var tt = class {
 		sonoraThemeSettle: 2200,
 		sonoraThemeTimeout: 5e3
 	}
-}, nt = `
+}, it = `
 :host {
   display: block;
   position: fixed;
@@ -2665,9 +2680,9 @@ header { position: relative; min-height: 12rem; }
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
   .flow-arrow { display: none; }
 }
-`, rt = "1.3.0";
+`, at = "1.3.1";
 // src/contextual-home.ts
-function it(e, t) {
+function ot(e, t) {
 	let n = e.rooms.flatMap((e) => e.occupancy);
 	return n.length !== 0 && n.every((e) => {
 		let n = E(t, e);
@@ -2678,7 +2693,7 @@ function it(e, t) {
 		].includes(n.entity.state);
 	});
 }
-function at(e, t, n) {
+function st(e, t, n) {
 	if (!e.presentation.contextualHome) return {
 		kind: "standard",
 		eyebrow: "Home overview"
@@ -2706,7 +2721,7 @@ function at(e, t, n) {
 			eyebrow: "Backup power active"
 		};
 	}
-	if (it(e, t)) return {
+	if (ot(e, t)) return {
 		kind: "away",
 		eyebrow: "Home while away"
 	};
@@ -2733,7 +2748,7 @@ function at(e, t, n) {
 	};
 }
 // src/entity-capabilities.ts
-function ot(e) {
+function ct(e) {
 	if (e === void 0 || e.state === "unavailable" || e.state === "unknown") return {
 		available: !1,
 		dimmable: !1,
@@ -2747,10 +2762,10 @@ function ot(e) {
 	};
 }
 // src/ocpp-adapter.ts
-function st(e) {
+function lt(e) {
 	return e.status !== void 0 && e.status !== "";
 }
-function ct(e) {
+function ut(e) {
 	let t = e.trim().toLocaleLowerCase().replaceAll(/[_ -]/gu, "");
 	return [
 		"available",
@@ -2785,23 +2800,23 @@ function B(e, t, n) {
 	let o = n[a.trim().toLocaleLowerCase()];
 	return o === void 0 ? void 0 : i * o;
 }
-function lt(e) {
+function dt(e) {
 	if (e == null || e === "") return;
 	let t = typeof e == "number" ? e : typeof e == "string" ? Number(e) : NaN;
 	return Number.isFinite(t) ? t : void 0;
 }
-function ut(e, t) {
+function ft(e, t) {
 	if (t === void 0) return;
 	let n = E(e, t);
 	if (n.status !== "available") return;
 	let r = n.entity.state.trim();
 	return r === "" || r === "unknown" || r === "unavailable" ? void 0 : r;
 }
-function dt(e, t) {
+function pt(e, t) {
 	if (!g(e)) return;
 	let n = e.id ?? e.transaction_id ?? e.transactionId ?? `session-${t + 1}`, r = e.started_at ?? e.startedAt ?? e.start;
 	if (typeof n != "string" && typeof n != "number" || typeof r != "string") return;
-	let i = e.stopped_at ?? e.stoppedAt ?? e.stop, a = lt(e.energy_kwh ?? e.energyKwh ?? e.energy), o = lt(e.duration_minutes ?? e.durationMinutes ?? e.duration), s = e.stop_reason ?? e.stopReason ?? e.reason;
+	let i = e.stopped_at ?? e.stoppedAt ?? e.stop, a = dt(e.energy_kwh ?? e.energyKwh ?? e.energy), o = dt(e.duration_minutes ?? e.durationMinutes ?? e.duration), s = e.stop_reason ?? e.stopReason ?? e.reason;
 	return {
 		id: String(n),
 		startedAt: r,
@@ -2811,15 +2826,15 @@ function dt(e, t) {
 		...typeof s == "string" ? { stopReason: s } : {}
 	};
 }
-function ft(e) {
+function mt(e) {
 	let t = e?.attributes.sessions ?? e?.attributes.recent_sessions;
 	return Array.isArray(t) ? t.flatMap((e, t) => {
-		let n = dt(e, t);
+		let n = pt(e, t);
 		return n === void 0 ? [] : [n];
 	}).slice(0, 6) : [];
 }
-function pt(e, t) {
-	let n = t.status === void 0 ? void 0 : E(e, t.status), r = n?.status === "available" ? n.entity : void 0, i = r === void 0 ? "offline" : ct(r.state), a = {
+function ht(e, t) {
+	let n = t.status === void 0 ? void 0 : E(e, t.status), r = n?.status === "available" ? n.entity : void 0, i = r === void 0 ? "offline" : ut(r.state), a = {
 		available: "Ready",
 		preparing: "Preparing",
 		charging: "Charging",
@@ -2852,9 +2867,9 @@ function pt(e, t) {
 		sec: 1 / 60,
 		min: 1,
 		h: 60
-	}), p = ut(e, t.transactionId), m = ut(e, t.connectorId), h = ut(e, t.errorCode);
+	}), p = ft(e, t.transactionId), m = ft(e, t.connectorId), h = ft(e, t.errorCode);
 	return {
-		configured: st(t),
+		configured: lt(t),
 		simulated: r?.attributes.h2dc_demo === !0,
 		state: i,
 		stateLabel: a[i],
@@ -2869,8 +2884,8 @@ function pt(e, t) {
 		...m === void 0 ? {} : { connectorId: m },
 		...h === void 0 ? {} : { errorCode: h },
 		sessions: (() => {
-			let n = ft(t.sessionHistory === void 0 ? void 0 : e.states[t.sessionHistory]);
-			return n.length > 0 ? n : ft(r);
+			let n = mt(t.sessionHistory === void 0 ? void 0 : e.states[t.sessionHistory]);
+			return n.length > 0 ? n : mt(r);
 		})()
 	};
 }
@@ -2878,26 +2893,26 @@ function pt(e, t) {
 function V(e) {
 	return `<ha-icon icon="${O(e)}" aria-hidden="true"></ha-icon>`;
 }
-function mt(e, t) {
+function gt(e, t) {
 	return e?.attributes[t];
 }
 function H(e, t, n) {
-	let r = mt(e, t);
+	let r = gt(e, t);
 	return typeof r == "string" || typeof r == "number" ? String(r) : n;
 }
-function ht(e, t) {
-	let n = gt(e);
+function _t(e, t) {
+	let n = vt(e);
 	return n.status === "available" ? `<img class="media-artwork${t ? " compact-artwork" : ""}" src="${O(n.url)}" alt="${O(n.alt)}" loading="eager" referrerpolicy="no-referrer">` : `<span class="media-artwork media-artwork-fallback${t ? " compact-artwork" : ""}" role="img" aria-label="Album artwork unavailable">${V("mdi:music-note")}</span>`;
 }
-function gt(e) {
-	return e.mediaArtwork ?? Ze(e.hass, e.config.entities.media);
+function vt(e) {
+	return e.mediaArtwork ?? $e(e.hass, e.config.entities.media);
 }
-function _t(e) {
-	let t = gt(e);
+function yt(e) {
+	let t = vt(e);
 	return t.status === "available" ? `<img class="now-artwork-backdrop" src="${O(t.url)}" alt="" aria-hidden="true" loading="eager" referrerpolicy="no-referrer">` : "";
 }
 function U(e, t, n) {
-	let r = Number(mt(e, t));
+	let r = Number(gt(e, t));
 	return Number.isFinite(r) ? r : n;
 }
 function W(e, t, n = "Unavailable") {
@@ -2912,12 +2927,12 @@ function K(e, t) {
 	return `${e.dashboardPath.replace(/\/$/u, "")}/${t}`;
 }
 function q(t, n, r) {
-	let i = e.filter((e) => t.config.navigation[e].visible && (e !== "energy" || t.powerFloAvailable !== !1) && (e !== "charging" || st(t.config.entities.ocpp))), a = new Intl.DateTimeFormat(void 0, {
+	let i = e.filter((e) => t.config.navigation[e].visible && (e !== "energy" || t.powerFloAvailable !== !1) && (e !== "charging" || lt(t.config.entities.ocpp) && t.evChargingDemoActive !== !1)), a = new Intl.DateTimeFormat(void 0, {
 		weekday: "long",
 		day: "numeric",
 		month: "long"
 	}).format(t.now), o = t.config.view === "home" ? `<h1>${O(a)}</h1>` : "";
-	t.config.view === "home" && (n = at(t.config, t.hass, t.now).eyebrow);
+	t.config.view === "home" && (n = st(t.config, t.hass, t.now).eyebrow);
 	let s = t.config.view === "home" ? n === "Home overview" ? "" : `<span>${O(n)}</span>` : `<h1 class="page-subheading">${O(n)}</h1>`;
 	return `<header><div class="brand">H2DC</div><nav class="nav" aria-label="Dashboard views">${i.map((e) => `<a class="${t.config.view === e ? "active" : ""}" href="${O(K(t.config, e))}">${O(t.config.navigation[e].label)}</a>`).join("")}</nav><div class="tools">${V("mdi:magnify")}<a href="?h2dc_admin=1" aria-label="Show Home Assistant controls">${V("mdi:cog-outline")}</a></div><div class="intro">${s}${o}<p>${O(r)}</p></div></header>`;
 }
@@ -2927,7 +2942,7 @@ function J(e, t) {
 function Y(e, t) {
 	return `<div class="ocpp-metric"><span>${O(e)}</span><strong>${O(t)}</strong></div>`;
 }
-function vt(e) {
+function bt(e) {
 	return e.sessions.length === 0 ? "<div class=\"ocpp-empty\"><strong>No recorded sessions</strong><span>Configure a session-history helper to retain completed charges.</span></div>" : e.sessions.slice(0, 4).map((e) => {
 		let t = new Date(e.startedAt);
 		return `<div class="ocpp-session"><span><strong>${O(Number.isNaN(t.getTime()) ? e.startedAt : new Intl.DateTimeFormat(void 0, {
@@ -2938,16 +2953,16 @@ function vt(e) {
 		}).format(t))}</strong><small>${O(e.stopReason ?? (e.stoppedAt === void 0 ? "In progress" : "Completed"))}</small></span><b>${O(J(e.energyKwh, "kWh"))}</b></div>`;
 	}).join("");
 }
-function yt(e) {
+function xt(e) {
 	let t = e.config.entities.ocpp;
-	if (!st(t)) return `${q(e, "EV Charging unavailable", "Map an OCPP status entity to enable this optional workspace")}<main class="page-grid"><section class="glass dependency" role="status"><h2>EV Charging is disabled</h2><p>Add a compatible Home Assistant OCPP integration, commission the charger, and map its entities in H2DC. Missing measurements will remain unavailable.</p></section></main>`;
-	let n = pt(e.hass, t), r = n.state === "charging", i = t.chargeControl === void 0 ? void 0 : E(e.hass, t.chargeControl), a = i?.status === "available", o = n.errorCode === void 0 || n.errorCode.toLocaleLowerCase() === "noerror" ? "No active fault" : n.errorCode, s = n.connectorId ?? "Not reported", c = n.simulated ? "<span class=\"charging-demo-badge\">Simulated preview</span>" : "";
-	return `${q(e, "EV Charging overview", `${n.stateLabel} · ${J(n.powerKw, "kW")} · Connector ${s}`)}<main class="charging-workspace"><aside class="charging-rail" aria-label="Live charging telemetry"><section class="glass charging-panel"><div class="card-title">Live telemetry</div>${Y("State", n.stateLabel)}${Y("Power", J(n.powerKw, "kW"))}${Y("Current", J(n.currentA, "A"))}${Y("Voltage", J(n.voltageV, "V"))}${Y("Temperature", J(n.temperatureC, "°C"))}</section><section class="glass charging-panel"><div class="card-title">Connector health</div>${Y("Connector", s)}${Y("Transaction", n.transactionId ?? "None")}${Y("Status", o)}</section></aside><section class="glass charging-focus ${n.state}"><div class="card-title">EV charging ${c}</div><div class="charging-topology" aria-label="${r ? "Power is flowing from the home supply through the charger to the vehicle" : "Charger is not delivering power"}"><span class="charging-node">${V("mdi:home-lightning-bolt-outline")}<small>Home supply</small></span><span class="charging-path ${r ? "active" : ""}" aria-hidden="true"><i></i></span><span class="charging-node charger">${V("mdi:ev-station")}<strong>${O(n.stateLabel)}</strong><small>${O(J(n.powerKw, "kW"))}</small></span><span class="charging-path ${r ? "active" : ""}" aria-hidden="true"><i></i></span><span class="charging-node">${V("mdi:car-electric")}<small>Vehicle</small></span></div><div class="charging-session-summary">${Y("Session energy", J(n.sessionEnergyKwh, "kWh"))}${Y("Duration", J(n.sessionDurationMinutes, "min"))}${Y("Lifetime energy", J(n.totalEnergyKwh, "kWh"))}</div>${t.chargeControl === void 0 ? `<p class="charging-note">${n.simulated ? "Read-only demo: no charger command will be sent." : "Remote charge control is not configured."}</p>` : `<button class="charging-control" data-action="ocpp-toggle" data-entity="${O(t.chargeControl)}" aria-pressed="${i?.status === "available" && i.entity.state === "on"}" ${a ? "" : "disabled"}>${V(r ? "mdi:stop-circle-outline" : "mdi:play-circle-outline")}<span>${r ? "Stop charging" : "Enable charging"}</span></button>`}</section><aside class="charging-rail" aria-label="Charging session history"><section class="glass charging-panel charging-history"><div class="card-title">Recent sessions</div>${vt(n)}</section><section class="glass charging-panel"><div class="card-title">Operations</div>${Y("Availability", W(e, t.availability))}${Y("Current limit", t.maximumCurrent === void 0 ? "Not configured" : `${G(e, t.maximumCurrent)} A`)}<p class="charging-note">Controls appear only when their exact Home Assistant entities are mapped.</p></section></aside></main>`;
+	if (!lt(t)) return `${q(e, "EV Charging unavailable", "Map an OCPP status entity to enable this optional workspace")}<main class="page-grid"><section class="glass dependency" role="status"><h2>EV Charging is disabled</h2><p>Add a compatible Home Assistant OCPP integration, commission the charger, and map its entities in H2DC. Missing measurements will remain unavailable.</p></section></main>`;
+	let n = ht(e.hass, t), r = n.state === "charging", i = t.chargeControl === void 0 ? void 0 : E(e.hass, t.chargeControl), a = i?.status === "available", o = n.errorCode === void 0 || n.errorCode.toLocaleLowerCase() === "noerror" ? "No active fault" : n.errorCode, s = n.connectorId ?? "Not reported", c = n.simulated ? "<span class=\"charging-demo-badge\">Simulated preview</span>" : "";
+	return `${q(e, "EV Charging overview", `${n.stateLabel} · ${J(n.powerKw, "kW")} · Connector ${s}`)}<main class="charging-workspace"><aside class="charging-rail" aria-label="Live charging telemetry"><section class="glass charging-panel"><div class="card-title">Live telemetry</div>${Y("State", n.stateLabel)}${Y("Power", J(n.powerKw, "kW"))}${Y("Current", J(n.currentA, "A"))}${Y("Voltage", J(n.voltageV, "V"))}${Y("Temperature", J(n.temperatureC, "°C"))}</section><section class="glass charging-panel"><div class="card-title">Connector health</div>${Y("Connector", s)}${Y("Transaction", n.transactionId ?? "None")}${Y("Status", o)}</section></aside><section class="glass charging-focus ${n.state}"><div class="card-title">EV charging ${c}</div><div class="charging-topology" aria-label="${r ? "Power is flowing from the home supply through the charger to the vehicle" : "Charger is not delivering power"}"><span class="charging-node">${V("mdi:home-lightning-bolt-outline")}<small>Home supply</small></span><span class="charging-path ${r ? "active" : ""}" aria-hidden="true"><i></i></span><span class="charging-node charger">${V("mdi:ev-station")}<strong>${O(n.stateLabel)}</strong><small>${O(J(n.powerKw, "kW"))}</small></span><span class="charging-path ${r ? "active" : ""}" aria-hidden="true"><i></i></span><span class="charging-node">${V("mdi:car-electric")}<small>Vehicle</small></span></div><div class="charging-session-summary">${Y("Session energy", J(n.sessionEnergyKwh, "kWh"))}${Y("Duration", J(n.sessionDurationMinutes, "min"))}${Y("Lifetime energy", J(n.totalEnergyKwh, "kWh"))}</div>${t.chargeControl === void 0 ? `<p class="charging-note">${n.simulated ? "Read-only demo: no charger command will be sent." : "Remote charge control is not configured."}</p>` : `<button class="charging-control" data-action="ocpp-toggle" data-entity="${O(t.chargeControl)}" aria-pressed="${i?.status === "available" && i.entity.state === "on"}" ${a ? "" : "disabled"}>${V(r ? "mdi:stop-circle-outline" : "mdi:play-circle-outline")}<span>${r ? "Stop charging" : "Enable charging"}</span></button>`}</section><aside class="charging-rail" aria-label="Charging session history"><section class="glass charging-panel charging-history"><div class="card-title">Recent sessions</div>${bt(n)}</section><section class="glass charging-panel"><div class="card-title">Operations</div>${Y("Availability", W(e, t.availability))}${Y("Current limit", t.maximumCurrent === void 0 ? "Not configured" : `${G(e, t.maximumCurrent)} A`)}<p class="charging-note">Controls appear only when their exact Home Assistant entities are mapped.</p></section></aside></main>`;
 }
-function bt(e) {
+function St(e) {
 	return `${q(e, "Energy unavailable", "Install PowerFlo to enable live energy analysis")}<main class="page-grid"><section class="glass dependency" role="status"><h2>Energy is disabled</h2><p>H2DC detected that the PowerFlo custom card is not installed. Install PowerFlo and reload Home Assistant to enable this tab automatically.</p></section></main>`;
 }
-function xt(e) {
+function Ct(e) {
 	return {
 		"clear-night": "mdi:weather-night",
 		cloudy: "mdi:weather-cloudy",
@@ -2966,22 +2981,22 @@ function xt(e) {
 		"windy-variant": "mdi:weather-windy-variant"
 	}[e] ?? "mdi:weather-cloudy-alert";
 }
-function St(e, t, n, r) {
+function wt(e, t, n, r) {
 	return !t || r ? "" : `<polygon class="flow-arrow" points="-7,-5 7,0 -7,5"><animateMotion dur="2s" begin="${n}" repeatCount="indefinite" path="${e}" rotate="auto"/></polygon>`;
 }
 function X(e) {
 	return e === "source" || e === "sink";
 }
-function Ct(e, t = !1) {
+function Tt(e, t = !1) {
 	let n = Se(e.hass, e.config), r = n.solar === "source" || n.battery === "source" || n.grid === "source", i = {
 		trunk: "M300 196 L300 142",
 		solar: n.solar === "sink" ? "M300 196 Q300 226 270 226 L130 226 Q100 226 100 256" : "M100 256 Q100 226 130 226 L270 226 Q300 226 300 196",
 		battery: n.battery === "sink" ? "M300 196 L300 256" : "M300 256 L300 196",
 		grid: n.grid === "sink" ? "M300 196 Q300 226 330 226 L470 226 Q500 226 500 256" : "M500 256 Q500 226 470 226 L330 226 Q300 226 300 196"
 	}, a = (e, n, r) => t ? `<button class="energy-node-trigger" data-action="energy-detail" data-detail="${e}" aria-label="Open ${n} details">${V(r)}</button>` : V(r), o = (e, t, n, r, i, o) => `<g class="node ${X(o) ? "active" : ""}" transform="translate(${e} 304)"><circle r="38"/><foreignObject x="-22" y="-22" width="44" height="44">${a(t, r, n)}</foreignObject><text y="66">${r}</text><text class="value" y="94">${O(i)}</text></g>`, s = t ? `<button class="energy-node-trigger" data-action="energy-detail" data-detail="load" aria-label="Open home load details">${V("mdi:home-outline")}</button>` : V("mdi:home-outline"), c = n.battery === "sink" ? `<g class="battery-flow-status charging" transform="translate(230 72)"><text>Charging</text><text class="value" y="32">${O(j(n.batteryPower))}</text><path class="charging-bolt" d="M-12 43 H-2 L-7 55 L9 38 H1 L7 27 Z" aria-hidden="true"/></g>` : n.battery === "source" ? `<g class="battery-flow-status discharging" transform="translate(230 78)"><text>Discharging</text><text class="value" y="34">${O(j(n.batteryPower))}</text></g>` : "";
-	return `<section class="glass flow"><div class="card-title">Home energy ${t ? "<button class=\"card-link\" data-action=\"energy-detail\" data-detail=\"inverter\" aria-label=\"Open inverter details\">›</button>" : `<a href="${O(K(e.config, "energy"))}" aria-label="Open Energy">›</a>`}</div><div class="topology"><svg viewBox="0 0 600 440" role="img" aria-label="${O(n.summary)}"><path class="track ${r ? "active" : ""}" d="M300 196 L300 142"/><path class="track ${X(n.solar) ? "active" : ""}" d="M100 256 Q100 226 130 226 L270 226 Q300 226 300 196"/><path class="track ${X(n.battery) ? "active" : ""}" d="M300 196 L300 256"/><path class="track ${X(n.grid) ? "active" : ""}" d="M300 196 Q300 226 330 226 L470 226 Q500 226 500 256"/>${St(i.trunk, r, "0s", e.reducedMotion)}${St(i.solar, X(n.solar), "-.6s", e.reducedMotion)}${St(i.battery, X(n.battery), "-1.2s", e.reducedMotion)}${St(i.grid, X(n.grid), "-1.6s", e.reducedMotion)}${c}<g class="home-node" transform="translate(300 92)"><circle r="54"/><foreignObject x="-28" y="-28" width="56" height="56">${s}</foreignObject></g><g class="home-reading" transform="translate(370 78)"><text>Home load</text><text class="value" y="34">${O(j(n.loadPower))}</text></g>${o(100, "solar", "mdi:solar-power", "Solar", j(n.solarPower), n.solar)}${o(300, "battery", "mdi:battery-medium", "Battery", n.batterySoc.status === "available" ? `${k(n.batterySoc.value)}%` : "—", n.battery)}${o(500, "grid", "mdi:transmission-tower", "Grid", n.gridAvailability === "unavailable" ? "Disconnected" : j(n.gridPower), n.grid)}</svg></div><p class="flow-summary">${O(n.summary)}</p></section>`;
+	return `<section class="glass flow"><div class="card-title">Home energy ${t ? "<button class=\"card-link\" data-action=\"energy-detail\" data-detail=\"inverter\" aria-label=\"Open inverter details\">›</button>" : `<a href="${O(K(e.config, "energy"))}" aria-label="Open Energy">›</a>`}</div><div class="topology"><svg viewBox="0 0 600 440" role="img" aria-label="${O(n.summary)}"><path class="track ${r ? "active" : ""}" d="M300 196 L300 142"/><path class="track ${X(n.solar) ? "active" : ""}" d="M100 256 Q100 226 130 226 L270 226 Q300 226 300 196"/><path class="track ${X(n.battery) ? "active" : ""}" d="M300 196 L300 256"/><path class="track ${X(n.grid) ? "active" : ""}" d="M300 196 Q300 226 330 226 L470 226 Q500 226 500 256"/>${wt(i.trunk, r, "0s", e.reducedMotion)}${wt(i.solar, X(n.solar), "-.6s", e.reducedMotion)}${wt(i.battery, X(n.battery), "-1.2s", e.reducedMotion)}${wt(i.grid, X(n.grid), "-1.6s", e.reducedMotion)}${c}<g class="home-node" transform="translate(300 92)"><circle r="54"/><foreignObject x="-28" y="-28" width="56" height="56">${s}</foreignObject></g><g class="home-reading" transform="translate(370 78)"><text>Home load</text><text class="value" y="34">${O(j(n.loadPower))}</text></g>${o(100, "solar", "mdi:solar-power", "Solar", j(n.solarPower), n.solar)}${o(300, "battery", "mdi:battery-medium", "Battery", n.batterySoc.status === "available" ? `${k(n.batterySoc.value)}%` : "—", n.battery)}${o(500, "grid", "mdi:transmission-tower", "Grid", n.gridAvailability === "unavailable" ? "Disconnected" : j(n.gridPower), n.grid)}</svg></div><p class="flow-summary">${O(n.summary)}</p></section>`;
 }
-function wt(e, t, n) {
+function Et(e, t, n) {
 	let r = E(e.hass, t);
 	if (r.status === "available") {
 		let e = r.entity.attributes.current_temperature;
@@ -2989,41 +3004,41 @@ function wt(e, t, n) {
 	}
 	return n === void 0 ? "—" : G(e, n);
 }
-function Tt(e, t = e.config.entities.climate) {
+function Dt(e, t = e.config.entities.climate) {
 	let n = E(e.hass, t), r = n.status === "available" ? n.entity : void 0, i = r?.state === "cool", a = U(r, "temperature", 18), o = U(r, "min_temp", 16), s = U(r, "max_temp", 30), c = U(r, "target_temp_step", 1), l = Math.max(o, a - c), u = Math.min(s, a + c);
 	return `<div class="cooling-control"><button class="cool-toggle ${i ? "cool" : "off"}" data-action="climate-mode" data-entity="${t}" data-mode="${i ? "off" : "cool"}" aria-pressed="${i}" ${r === void 0 ? "disabled" : ""}>${V(i ? "mdi:snowflake" : "mdi:power")}<span><b>${i ? "Cool" : "Off"}</b><small>${i ? `Set to ${Z(k(a))}` : "Tap to cool"}</small></span></button><div class="target-control" aria-label="Target temperature"><button data-action="climate-temperature" data-entity="${t}" data-value="${l}" aria-label="Decrease target temperature" ${a <= o || r === void 0 ? "disabled" : ""}>&minus;</button><strong>${k(a)}&deg;</strong><button data-action="climate-temperature" data-entity="${t}" data-value="${u}" aria-label="Increase target temperature" ${a >= s || r === void 0 ? "disabled" : ""}>+</button></div></div>`;
 }
 function Z(e) {
 	return `${O(e)} <span class="temperature-unit" aria-hidden="true">&deg;C</span><span class="sr-only"> degrees Celsius</span>`;
 }
-function Et(e, t, n, r) {
+function Ot(e, t, n, r) {
 	let i = E(e.hass, t), a = i.status === "available" ? i.entity.state : "unavailable";
 	return `<button class="control ${O(a)}" data-action="toggle" data-entity="${O(t)}" aria-pressed="${a === "on"}" ${i.status === "unavailable" ? "disabled" : ""}>${V(r)}<span>${O(n)}</span><small>${O(a)}</small></button>`;
 }
-function Dt(e, t, n, r, i) {
+function kt(e, t, n, r, i) {
 	return `<a class="glass summary" href="${O(K(e.config, i))}" aria-label="Open ${O(n)}: ${O(r)}"><span class="round">${V(t)}</span><div><strong>${O(n)}</strong><small>${O(r)}</small></div><b aria-hidden="true">&rsaquo;</b></a>`;
 }
-function Ot(e, t, n, r) {
-	let i = Ge(e.config, e.hass, t);
+function At(e, t, n, r) {
+	let i = qe(e.config, e.hass, t);
 	return `<button class="glass pulse-card" data-action="pulse-detail" data-category="${t}" aria-label="Open ${O(r)} details: ${O(i.summary)}"><span class="pulse-icon">${V(n)}</span><div><strong>${O(r)}</strong><small>${O(i.summary)}</small></div><b aria-hidden="true">&rsaquo;</b></button>`;
 }
-function kt(e) {
+function jt(e) {
 	let t = e.config.entities, n = W(e, t.alarm).toLowerCase(), r = t.lights.filter((t) => E(e.hass, t.entity).status === "available" && e.hass.states[t.entity]?.state === "on").length, i = E(e.hass, t.weather), a = i.status === "available" ? i.entity : void 0, o = a?.state ?? "unavailable", s = A(a, "temperature"), c = A(a, "humidity"), l = new Intl.DateTimeFormat(void 0, {
 		hour: "numeric",
 		minute: "2-digit"
-	}).format(e.now), u = Xe(e.hass, t.media), d = u?.entityId ?? t.media.primary, f = u?.entity ?? (d === void 0 ? void 0 : e.hass.states[d]), p = W(e, t.climate, "off"), m = wt(e, t.climate, t.roomTemperature), h = t.nearby.map((t) => Et(e, t.entity, t.label, t.icon)).join("");
-	return `${q(e, "Home overview", `Alarm ${n} / ${r} selected lights on`)}<main class="home-grid"><div class="left-stack"><section class="glass clock"><strong>${O(l)}</strong></section><section class="glass weather weather-${O(o.replace(/[^a-z-]/gu, ""))}"><div>${V(xt(o))}</div><div><strong>${Z(O(s))}</strong><span>${O(o.replaceAll("_", " "))}</span><small>Humidity ${O(c)}%</small></div></section></div>${Ct(e)}<div class="right-stack"><section class="glass compact"><div class="card-title">Climate <a href="${O(K(e.config, "climate"))}" aria-label="Open Climate">&rsaquo;</a></div><div class="climate-body"><div class="climate-reading"><strong>${Z(m)}</strong><small>Living room</small></div>${Tt(e)}</div></section><section class="glass compact"><div class="card-title">Now playing <a href="${O(K(e.config, "media"))}" aria-label="Open Media">&rsaquo;</a></div><div class="media-row">${ht(e, !0)}<div><strong>${O(H(f, "media_title", "No media playing"))}</strong><small>${O(H(f, "media_artist", "Surround speakers"))}</small></div>${d === void 0 ? "" : `<button class="media-action" data-action="media" data-entity="${O(d)}" data-command="media_play_pause" aria-label="Play or pause" ${f === void 0 ? "disabled" : ""}>${V("mdi:play-pause")}</button>`}</div></section><section class="glass controls"><div class="card-title">Nearby controls</div>${h || "<p>No nearby controls configured.</p>"}</section></div><div class="summary-row">${Dt(e, "mdi:shield-home", "Security", `Alarm ${n}`, "security")}${Dt(e, "mdi:lightbulb-group", "Lights", `${r} on`, "lights")}${Dt(e, "mdi:thermometer", "Climate", `${m} degrees Celsius / ${p}`, "climate")}${Dt(e, "mdi:solar-power", "Solar", j(D(e.hass, t.energy.solar)), "energy")}</div><div class="pulse-row">${Ot(e, "access", "mdi:door-closed-lock", "Access")}${Ot(e, "presence", "mdi:motion-sensor", "Presence")}${Ot(e, "comfort", "mdi:home-thermometer-outline", "Comfort")}${Ot(e, "attention", "mdi:alert-circle-outline", "Attention")}</div></main>`;
+	}).format(e.now), u = Qe(e.hass, t.media), d = u?.entityId ?? t.media.primary, f = u?.entity ?? (d === void 0 ? void 0 : e.hass.states[d]), p = W(e, t.climate, "off"), m = Et(e, t.climate, t.roomTemperature), h = t.nearby.map((t) => Ot(e, t.entity, t.label, t.icon)).join("");
+	return `${q(e, "Home overview", `Alarm ${n} / ${r} selected lights on`)}<main class="home-grid"><div class="left-stack"><section class="glass clock"><strong>${O(l)}</strong></section><section class="glass weather weather-${O(o.replace(/[^a-z-]/gu, ""))}"><div>${V(Ct(o))}</div><div><strong>${Z(O(s))}</strong><span>${O(o.replaceAll("_", " "))}</span><small>Humidity ${O(c)}%</small></div></section></div>${Tt(e)}<div class="right-stack"><section class="glass compact"><div class="card-title">Climate <a href="${O(K(e.config, "climate"))}" aria-label="Open Climate">&rsaquo;</a></div><div class="climate-body"><div class="climate-reading"><strong>${Z(m)}</strong><small>Living room</small></div>${Dt(e)}</div></section><section class="glass compact"><div class="card-title">Now playing <a href="${O(K(e.config, "media"))}" aria-label="Open Media">&rsaquo;</a></div><div class="media-row">${_t(e, !0)}<div><strong>${O(H(f, "media_title", "No media playing"))}</strong><small>${O(H(f, "media_artist", "Surround speakers"))}</small></div>${d === void 0 ? "" : `<button class="media-action" data-action="media" data-entity="${O(d)}" data-command="media_play_pause" aria-label="Play or pause" ${f === void 0 ? "disabled" : ""}>${V("mdi:play-pause")}</button>`}</div></section><section class="glass controls"><div class="card-title">Nearby controls</div>${h || "<p>No nearby controls configured.</p>"}</section></div><div class="summary-row">${kt(e, "mdi:shield-home", "Security", `Alarm ${n}`, "security")}${kt(e, "mdi:lightbulb-group", "Lights", `${r} on`, "lights")}${kt(e, "mdi:thermometer", "Climate", `${m} degrees Celsius / ${p}`, "climate")}${kt(e, "mdi:solar-power", "Solar", j(D(e.hass, t.energy.solar)), "energy")}</div><div class="pulse-row">${At(e, "access", "mdi:door-closed-lock", "Access")}${At(e, "presence", "mdi:motion-sensor", "Presence")}${At(e, "comfort", "mdi:home-thermometer-outline", "Comfort")}${At(e, "attention", "mdi:alert-circle-outline", "Attention")}</div></main>`;
 }
-function At(e, t) {
+function Mt(e, t) {
 	return typeof e == "string" && (e.startsWith("/api/") || e.startsWith("/local/") || e.startsWith("/media/") || e.startsWith("https://") || e.startsWith("data:image/")) ? e : `/api/camera_proxy/${encodeURIComponent(t)}`;
 }
-function jt(e, t, n) {
+function Nt(e, t, n) {
 	let r = E(e.hass, t.entity), i = O(t.label);
 	if (r.status === "unavailable") return `<figure class="camera unavailable"><div class="camera-missing">${V("mdi:camera-off-outline")}<span>Camera unavailable</span></div><span class="camera-caption"><strong>${i}</strong><span>Offline</span></span></figure>`;
-	let a = t.mediumStreamEntity, o = a === void 0 ? void 0 : E(e.hass, a), s = o?.status === "available", c = s ? o : r, l = s && a !== void 0 ? a : t.entity, u = At(mt(c?.entity, "entity_picture"), l), d = a === void 0 ? "Medium stream not configured" : s ? "Open medium stream" : "Medium stream unavailable", f = n < 3 ? "eager" : "lazy", p = n < 3 ? "high" : "low", m = `<img src="${O(u)}" alt="${i} camera" loading="${f}" fetchpriority="${p}" decoding="async"><span class="camera-caption"><strong>${i}</strong><span>${O(d)}</span></span>`;
+	let a = t.mediumStreamEntity, o = a === void 0 ? void 0 : E(e.hass, a), s = o?.status === "available", c = s ? o : r, l = s && a !== void 0 ? a : t.entity, u = Mt(gt(c?.entity, "entity_picture"), l), d = a === void 0 ? "Medium stream not configured" : s ? "Open medium stream" : "Medium stream unavailable", f = n < 3 ? "eager" : "lazy", p = n < 3 ? "high" : "low", m = `<img src="${O(u)}" alt="${i} camera" loading="${f}" fetchpriority="${p}" decoding="async"><span class="camera-caption"><strong>${i}</strong><span>${O(d)}</span></span>`;
 	return !s || a === void 0 ? `<figure class="camera unavailable-stream" aria-label="${i}: ${O(d)}">${m}</figure>` : `<button class="camera camera-action" data-action="camera-detail" data-entity="${O(a)}" data-label="${i}" aria-label="Open ${i} medium-quality live stream">${m}</button>`;
 }
-function Mt(e) {
+function Pt(e) {
 	let t = W(e, e.config.entities.alarm).toLowerCase(), n = e.config.entities.cameras, r = O(e.config.entities.alarm), i = E(e.hass, e.config.entities.alarm).status === "unavailable" ? "disabled" : "", a = [
 		"1",
 		"2",
@@ -3038,21 +3053,21 @@ function Mt(e) {
 		"0",
 		"Disarm"
 	].map((e) => e === "Clear" ? "<button class=\"keypad-key keypad-secondary\" data-action=\"alarm-code-clear\">Clear</button>" : e === "Disarm" ? `<button class="keypad-key keypad-submit" data-action="alarm-code-submit" ${i}>Disarm</button>` : `<button class="keypad-key" data-action="alarm-code-digit" data-digit="${e}" aria-label="Alarm digit ${e}">${e}</button>`).join("");
-	return `${q(e, "Security overview", `Alarm ${t} / ${n.length} configured zones`)}<main class="page-grid security-grid"><aside class="alarm-stack"><section class="glass alarm"><div class="card-title">Alarm system</div><div class="alarm-status"><span class="alarm-ring">${V("mdi:shield-outline")}</span><strong>${O(t)}</strong></div><div class="alarm-actions"><button class="alarm-action" data-action="alarm" data-entity="${r}" data-command="alarm_arm_home" ${i}>${V("mdi:home-outline")}Home</button><button class="alarm-action" data-action="alarm" data-entity="${r}" data-command="alarm_arm_away" ${i}>${V("mdi:walk")}Away</button><button class="alarm-action" data-action="alarm" data-entity="${r}" data-command="alarm_arm_night" ${i}>${V("mdi:weather-night")}Night</button></div></section><section class="glass alarm-keypad"><div class="card-title">Alarm keypad</div><output class="keypad-display" data-alarm-code-display aria-live="polite" aria-label="No alarm code entered">Enter code</output><div class="keypad-grid">${a}</div></section></aside><section class="camera-grid">${n.length === 0 ? "<section class=\"glass empty\"><div><h2>No cameras configured</h2><p>Add camera entities in the visual editor to populate this view.</p></div></section>" : n.map((t, n) => jt(e, t, n)).join("")}</section></main>`;
+	return `${q(e, "Security overview", `Alarm ${t} / ${n.length} configured zones`)}<main class="page-grid security-grid"><aside class="alarm-stack"><section class="glass alarm"><div class="card-title">Alarm system</div><div class="alarm-status"><span class="alarm-ring">${V("mdi:shield-outline")}</span><strong>${O(t)}</strong></div><div class="alarm-actions"><button class="alarm-action" data-action="alarm" data-entity="${r}" data-command="alarm_arm_home" ${i}>${V("mdi:home-outline")}Home</button><button class="alarm-action" data-action="alarm" data-entity="${r}" data-command="alarm_arm_away" ${i}>${V("mdi:walk")}Away</button><button class="alarm-action" data-action="alarm" data-entity="${r}" data-command="alarm_arm_night" ${i}>${V("mdi:weather-night")}Night</button></div></section><section class="glass alarm-keypad"><div class="card-title">Alarm keypad</div><output class="keypad-display" data-alarm-code-display aria-live="polite" aria-label="No alarm code entered">Enter code</output><div class="keypad-grid">${a}</div></section></aside><section class="camera-grid">${n.length === 0 ? "<section class=\"glass empty\"><div><h2>No cameras configured</h2><p>Add camera entities in the visual editor to populate this view.</p></div></section>" : n.map((t, n) => Nt(e, t, n)).join("")}</section></main>`;
 }
-function Nt(e) {
+function Ft(e) {
 	let t = e.config.entities.energy, n = Se(e.hass, e.config), r = (e, t, n) => `<button class="energy-metric" data-action="energy-detail" data-detail="${n}"><span>${e}</span><strong>${O(t)}</strong><b aria-hidden="true">›</b></button>`, i = W(e, t.inverterStatus, n.freshness === "fresh" ? "Online" : "Telemetry unavailable"), a = n.gridAvailability === "available" ? "Connected" : n.gridAvailability === "unavailable" ? "Disconnected" : "Unknown";
-	return `${q(e, "Energy overview", `${n.summary} · Battery ${G(e, t.batterySoc)}% · Grid relay ${a}`)}<main class="energy-workspace"><aside class="energy-rail energy-rail-left" aria-label="Current energy analytics"><section class="glass energy-panel"><div class="card-title">Today</div>${r("Solar", j(n.solarPower), "solar")}${r("Grid", j(n.gridPower), "grid")}${r("Battery", j(n.batteryPower), "battery")}${r("Protected load", j(n.loadPower), "load")}</section><section class="glass energy-panel"><div class="card-title">System health</div>${r("Inverter", i, "inverter")}${r("Grid relay", a, "grid")}${r("AC stage", `${G(e, t.acTemperature)} °C`, "inverter")}${r("DC stage", `${G(e, t.dcTemperature)} °C`, "inverter")}</section><button class="glass energy-shortcut" data-action="energy-detail" data-detail="history">${V("mdi:chart-timeline-variant")}<span><strong>History and diagnostics</strong><small>Recorder graphs, data quality and outage evidence</small></span><b aria-hidden="true">›</b></button></aside><div class="energy-focus">${Ct(e, !0)}</div><aside class="energy-rail energy-rail-right" aria-label="Energy planning analytics"><section class="glass energy-panel"><div class="card-title">Battery outlook</div>${r("State of charge", `${G(e, t.batterySoc)}%`, "battery")}${r("Current flow", j(n.batteryPower), "battery")}<p class="energy-note"><strong>Two independent estimates</strong><span>Runtime to reserve and charge-to-target remain together in PowerFlo.</span></p></section><section class="glass energy-panel"><div class="card-title">Outage readiness</div>${r("Grid supply", a, "grid")}${r("Reserve", `${k(e.config.powerFlo.batteryReserveSoc)}%`, "readiness")}${r("Deadline", e.config.powerFlo.readinessDeadline, "readiness")}</section><button class="glass energy-shortcut" data-action="energy-detail" data-detail="analysis">${V("mdi:solar-power-variant-outline")}<span><strong>Complete PowerFlo analysis</strong><small>Forecasts, readiness, history and source insights</small></span><b aria-hidden="true">›</b></button></aside></main>`;
+	return `${q(e, "Energy overview", `${n.summary} · Battery ${G(e, t.batterySoc)}% · Grid relay ${a}`)}<main class="energy-workspace"><aside class="energy-rail energy-rail-left" aria-label="Current energy analytics"><section class="glass energy-panel"><div class="card-title">Today</div>${r("Solar", j(n.solarPower), "solar")}${r("Grid", j(n.gridPower), "grid")}${r("Battery", j(n.batteryPower), "battery")}${r("Protected load", j(n.loadPower), "load")}</section><section class="glass energy-panel"><div class="card-title">System health</div>${r("Inverter", i, "inverter")}${r("Grid relay", a, "grid")}${r("AC stage", `${G(e, t.acTemperature)} °C`, "inverter")}${r("DC stage", `${G(e, t.dcTemperature)} °C`, "inverter")}</section><button class="glass energy-shortcut" data-action="energy-detail" data-detail="history">${V("mdi:chart-timeline-variant")}<span><strong>History and diagnostics</strong><small>Recorder graphs, data quality and outage evidence</small></span><b aria-hidden="true">›</b></button></aside><div class="energy-focus">${Tt(e, !0)}</div><aside class="energy-rail energy-rail-right" aria-label="Energy planning analytics"><section class="glass energy-panel"><div class="card-title">Battery outlook</div>${r("State of charge", `${G(e, t.batterySoc)}%`, "battery")}${r("Current flow", j(n.batteryPower), "battery")}<p class="energy-note"><strong>Two independent estimates</strong><span>Runtime to reserve and charge-to-target remain together in PowerFlo.</span></p></section><section class="glass energy-panel"><div class="card-title">Outage readiness</div>${r("Grid supply", a, "grid")}${r("Reserve", `${k(e.config.powerFlo.batteryReserveSoc)}%`, "readiness")}${r("Deadline", e.config.powerFlo.readinessDeadline, "readiness")}</section><button class="glass energy-shortcut" data-action="energy-detail" data-detail="analysis">${V("mdi:solar-power-variant-outline")}<span><strong>Complete PowerFlo analysis</strong><small>Forecasts, readiness, history and source insights</small></span><b aria-hidden="true">›</b></button></aside></main>`;
 }
-function Pt(e, t, n, r) {
+function It(e, t, n, r) {
 	return `<section class="glass temp-row"><span class="round">${V(r)}</span><div><small>${O(n)}</small><strong>${Z(G(e, t))}</strong></div><b aria-hidden="true">›</b></section>`;
 }
-function Ft(e, t, n, r) {
-	let i = wt(e, t, r);
-	return `<section class="glass thermostat"><div class="card-title">${O(n)} air conditioning</div><div class="climate-reading"><strong>${Z(i)}</strong><small>${O(n)}</small></div>${Tt(e, t)}</section>`;
+function Lt(e, t, n, r) {
+	let i = Et(e, t, r);
+	return `<section class="glass thermostat"><div class="card-title">${O(n)} air conditioning</div><div class="climate-reading"><strong>${Z(i)}</strong><small>${O(n)}</small></div>${Dt(e, t)}</section>`;
 }
-function It(e) {
-	let t = e.config.entities, n = E(e.hass, t.weather), r = n.status === "available" ? n.entity : void 0, i = t.roomTemperatures.map((t) => Pt(e, t.entity, t.room, t.icon)).join(""), a = r?.state ?? "unavailable", o = a.replace(/[^a-z-]/gu, "") || "unavailable", s = r === void 0 ? "—" : A(r, "temperature"), c = e.config.rooms.filter((e) => e.climate !== void 0), l = c.length > 0 ? c : [{
+function Rt(e) {
+	let t = e.config.entities, n = E(e.hass, t.weather), r = n.status === "available" ? n.entity : void 0, i = t.roomTemperatures.map((t) => It(e, t.entity, t.room, t.icon)).join(""), a = r?.state ?? "unavailable", o = a.replace(/[^a-z-]/gu, "") || "unavailable", s = r === void 0 ? "—" : A(r, "temperature"), c = e.config.rooms.filter((e) => e.climate !== void 0), l = c.length > 0 ? c : [{
 		id: "living-room",
 		name: "Living room",
 		climate: t.climate,
@@ -3062,10 +3077,10 @@ function It(e) {
 		lights: [],
 		switches: [],
 		media: []
-	}], u = l.map((n) => Ft(e, n.climate ?? t.climate, n.name, n.temperature)).join(""), d = l[0], f = d?.climate ?? t.climate, p = d?.temperature ?? t.roomTemperature;
-	return `${q(e, "Climate overview", `Air conditioning ${W(e, f, "off")} · ${O(d?.name ?? "Living room")} ${wt(e, f, p)} degrees Celsius`)}<main class="page-grid climate-grid"><div class="temps">${i || "<section class=\"glass empty\"><p>No supporting room sensors configured.</p></section>"}</div><div class="thermostats">${u}</div><div class="climate-right"><section class="glass outside weather-surface weather-${O(o)}" data-weather-condition="${O(o)}">${V(xt(a))}<div><small>Outside</small><strong>${Z(s)}</strong><span>${O(a.replaceAll("_", " "))}</span></div></section></div></main>`;
+	}], u = l.map((n) => Lt(e, n.climate ?? t.climate, n.name, n.temperature)).join(""), d = l[0], f = d?.climate ?? t.climate, p = d?.temperature ?? t.roomTemperature;
+	return `${q(e, "Climate overview", `Air conditioning ${W(e, f, "off")} · ${O(d?.name ?? "Living room")} ${Et(e, f, p)} degrees Celsius`)}<main class="page-grid climate-grid"><div class="temps">${i || "<section class=\"glass empty\"><p>No supporting room sensors configured.</p></section>"}</div><div class="thermostats">${u}</div><div class="climate-right"><section class="glass outside weather-surface weather-${O(o)}" data-weather-condition="${O(o)}">${V(Ct(a))}<div><small>Outside</small><strong>${Z(s)}</strong><span>${O(a.replaceAll("_", " "))}</span></div></section></div></main>`;
 }
-function Lt(e, t, n, r, i) {
+function zt(e, t, n, r, i) {
 	let a = n.replace(/\s+/gu, " ").trim(), o = i?.replace(/\s+/gu, " ").trim(), s = (o !== void 0 && o !== "" && a.toLocaleLowerCase().endsWith(` ${o.toLocaleLowerCase()}`) ? a.slice(0, -(o.length + 1)).trim() : a).replace(/\s+(?:lights?|switches?|controls?)$/iu, "").trim() || a;
 	if (o !== void 0 && o !== "") return {
 		room: s,
@@ -3089,16 +3104,16 @@ function Lt(e, t, n, r, i) {
 		])).has(u.toLocaleLowerCase()) ? u : c
 	};
 }
-function Rt(e, t, n, r, i) {
-	let a = E(e.hass, t), o = a.status === "available" ? a.entity : void 0, s = ot(o), c = o?.state ?? "unavailable", l = c === "on" ? "on" : c === "off" ? "off" : "unavailable", u = U(o, "brightness", c === "on" ? 255 : 0), d = Math.round(u / 255 * 100), f = Lt(o, t, n, "Light", i);
+function Bt(e, t, n, r, i) {
+	let a = E(e.hass, t), o = a.status === "available" ? a.entity : void 0, s = ct(o), c = o?.state ?? "unavailable", l = c === "on" ? "on" : c === "off" ? "off" : "unavailable", u = U(o, "brightness", c === "on" ? 255 : 0), d = Math.round(u / 255 * 100), f = zt(o, t, n, "Light", i);
 	return `<section class="glass light-card ${l}"><button class="light-card-surface" data-action="toggle" data-entity="${O(t)}" aria-label="Toggle ${O(f.name)}" aria-pressed="${c === "on"}" ${s.available ? "" : "disabled"}><span class="light-heading"><span class="round">${V(r)}</span><span><small>${O(f.room)}</small><strong>${O(f.name)}</strong></span><span class="light-toggle-icon">${V(c === "on" ? "mdi:lightbulb-on" : "mdi:lightbulb-outline")}</span></span><span class="light-state"><span>${O(c)}</span>${s.dimmable ? `<b>${k(d)}%</b>` : ""}</span></button>${s.dimmable ? `<input type="range" min="1" max="100" value="${Math.max(1, d)}" data-action="brightness" data-entity="${O(t)}" aria-label="${O(f.name)} brightness" ${s.available ? "" : "disabled"}>` : ""}</section>`;
 }
-function zt(e, t, n, r, i) {
-	let a = E(e.hass, t), o = a.status === "available" ? a.entity : void 0, s = o?.state ?? "unavailable", c = s === "on" ? "on" : s === "off" ? "off" : "unavailable", l = Lt(o, t, n, "Switch", i);
+function Vt(e, t, n, r, i) {
+	let a = E(e.hass, t), o = a.status === "available" ? a.entity : void 0, s = o?.state ?? "unavailable", c = s === "on" ? "on" : s === "off" ? "off" : "unavailable", l = zt(o, t, n, "Switch", i);
 	return `<section class="glass switch-card ${c}"><button class="switch-card-surface" data-action="toggle" data-entity="${O(t)}" aria-label="Toggle ${O(l.name)}" aria-pressed="${s === "on"}" ${o === void 0 ? "disabled" : ""}><span class="light-heading"><span class="round">${V(r)}</span><span><small>${O(l.room)}</small><strong>${O(l.name)}</strong></span><span class="light-toggle-icon">${V(s === "on" ? "mdi:toggle-switch" : "mdi:toggle-switch-off-outline")}</span></span><span class="light-state"><span>${O(s)}</span><b>${s === "on" ? "On" : s === "off" ? "Off" : "—"}</b></span></button></section>`;
 }
-function Bt(e) {
-	let t = e.config.entities.lights, n = e.config.entities.switches, r = n.slice(0, 4), i = n.slice(4), a = t.filter((t) => e.hass.states[t.entity]?.state === "on").length, o = r.filter((t) => e.hass.states[t.entity]?.state === "on").length, s = i.filter((t) => e.hass.states[t.entity]?.state === "on").length, c = t.length + r.length, l = a + o, u = c === 0 ? "<section class=\"glass empty compact-empty\"><div><h2>No lights configured</h2><p>Add the household lights that belong on this dashboard.</p></div></section>" : `${r.map((t) => zt(e, t.entity, t.room, t.icon, t.label)).join("")}${t.map((t) => Rt(e, t.entity, t.room, t.icon, t.label)).join("")}`, d = i.length === 0 ? "<section class=\"glass empty compact-empty\"><div><h2>No switches configured</h2><p>Add household switches only; infrastructure controls stay excluded.</p></div></section>" : i.map((t) => zt(e, t.entity, t.room, t.icon, t.label)).join("");
+function Ht(e) {
+	let t = e.config.entities.lights, n = e.config.entities.switches, r = n.slice(0, 4), i = n.slice(4), a = t.filter((t) => e.hass.states[t.entity]?.state === "on").length, o = r.filter((t) => e.hass.states[t.entity]?.state === "on").length, s = i.filter((t) => e.hass.states[t.entity]?.state === "on").length, c = t.length + r.length, l = a + o, u = c === 0 ? "<section class=\"glass empty compact-empty\"><div><h2>No lights configured</h2><p>Add the household lights that belong on this dashboard.</p></div></section>" : `${r.map((t) => Vt(e, t.entity, t.room, t.icon, t.label)).join("")}${t.map((t) => Bt(e, t.entity, t.room, t.icon, t.label)).join("")}`, d = i.length === 0 ? "<section class=\"glass empty compact-empty\"><div><h2>No switches configured</h2><p>Add household switches only; infrastructure controls stay excluded.</p></div></section>" : i.map((t) => Vt(e, t.entity, t.room, t.icon, t.label)).join("");
 	return `${q(e, "Lighting and switches", `${l} lighting controls on / ${s} switches on`)}<main class="lights-workspace"><section class="device-section" aria-labelledby="lights-heading"><div class="device-section-heading"><h2 id="lights-heading">Lights</h2><span>${l} of ${c} on</span></div><div class="device-grid lights-grid">${u}</div></section><section class="device-section" aria-labelledby="switches-heading"><div class="device-section-heading"><h2 id="switches-heading">Switches</h2><span>${s} of ${i.length} on</span></div><div class="device-grid switches-grid">${d}</div></section></main>`;
 }
 function Q(e, t, n, r) {
@@ -3106,18 +3121,18 @@ function Q(e, t, n, r) {
 	let i = E(e.hass, t), a = i.status === "available" ? i.entity : void 0;
 	return `<div class="room-row"><span>${V(r)}</span><div><strong>${O(n)}</strong><small>${O(H(a, "media_title", a?.state ?? "Unavailable"))}</small></div><button class="media-action" data-action="media" data-entity="${O(t)}" data-command="media_play_pause" aria-label="Play or pause ${O(n)}" ${a === void 0 ? "disabled" : ""}>${V("mdi:play-pause")}</button></div>`;
 }
-function Vt(e) {
-	let t = e.config.entities.media, n = Xe(e.hass, t), r = n?.entityId ?? t.primary, i = n?.entity ?? (r === void 0 ? void 0 : e.hass.states[r]), a = r === void 0 ? void 0 : O(r), o = i === void 0 ? "disabled" : "";
-	return `${q(e, "Media overview", "Whole-house audio and television control")}<main class="page-grid media-grid"><section class="glass rooms media-living"><div class="card-title">Living room</div>${Q(e, t.primary, "Surround speakers", "mdi:speaker-multiple")}${Q(e, t.livingTv, "Living room TV", "mdi:television")}</section><section class="glass now media-now">${_t(e)}<div class="now-content"><div class="card-title">Now playing</div><div class="album">${ht(e, !1)}</div><h2>${O(H(i, "media_title", "No media playing"))}</h2><span>${O(H(i, "media_artist", "Select a source to start listening"))}</span>${a === void 0 ? "" : `<div class="transport"><button class="media-action" data-action="media" data-entity="${a}" data-command="media_previous_track" aria-label="Previous track" ${o}>${V("mdi:skip-previous")}</button><button class="media-action" data-action="media" data-entity="${a}" data-command="media_play_pause" aria-label="Play or pause" ${o}>${V("mdi:play")}</button><button class="media-action" data-action="media" data-entity="${a}" data-command="media_next_track" aria-label="Next track" ${o}>${V("mdi:skip-next")}</button></div>`}</div></section><section class="glass rooms media-private"><div class="card-title">Private rooms</div>${Q(e, t.bedroom, "Master bedroom", "mdi:bed-king-outline")}${Q(e, t.study, "Study", "mdi:bookshelf")}</section><section class="glass rooms media-whole"><div class="card-title">Common areas</div>${Q(e, t.family, "Family lounge", "mdi:sofa-outline")}${Q(e, t.kitchen, "Kitchen", "mdi:silverware-fork-knife")}${Q(e, t.dining, "Dining", "mdi:table-furniture")}${Q(e, t.roam, "Sonos Roam", "mdi:speaker-wireless")}</section><section class="glass quick media-quick"><div class="card-title">Quick controls</div>${a === void 0 ? "" : `<button class="media-action" data-action="media" data-entity="${a}" data-command="media_pause" ${o}>${V("mdi:pause")} Pause all</button>`}${e.config.sonoraUrl === void 0 ? "<p>Sonos controller URL not configured.</p>" : `<a href="${O(K(e.config, "sonos"))}">${V("mdi:speaker-multiple")} Open Sonos controller</a>`}</section></main>`;
-}
-function Ht(e) {
-	return `${q(e, "Sonos controller", "Connected whole-house audio control")}<main class="sonos-workspace">${e.config.sonoraUrl === void 0 ? `<section class="glass empty"><div>${V("mdi:speaker-multiple")}<h2>Whole-house audio</h2><p>Add the HTTPS Sonora URL in the visual editor.</p></div></section>` : `<iframe class="sonos-frame" src="${O(e.config.sonoraUrl)}" title="Sonos whole-house controller" loading="eager" referrerpolicy="no-referrer" allow="autoplay; fullscreen"></iframe><div class="sonos-curtain" data-sonos-curtain role="status"><span>${V("mdi:speaker-multiple")}</span><strong>Preparing Sonos controls</strong><small>Applying the H2DC appearance</small></div>`}</main>`;
-}
-function Ut(e, t, n, r, i = "", a = !1) {
-	let o = r === void 0 ? { status: "unavailable" } : D(e.hass, r), s = o.status === "available" ? k(o.value) : W(e, r), c = s !== "Unavailable", l = s === "on" ? "Tap to turn off" : s === "off" ? "Tap to turn on" : "Control unavailable", u = `<span class="round">${V(t)}</span><div><small>${O(n)}</small><strong>${O(s)}${c ? O(i) : ""}</strong><span class="diagnostic-hint">${a && c ? l : c ? "Live status" : "Not configured"}</span></div>`;
-	return a && r !== void 0 ? `<button class="glass diagnostic diagnostic-control ${c ? "available" : "unavailable"}" data-action="poe-toggle" data-entity="${O(r)}" ${c ? "" : "disabled"}>${u}</button>` : `<section class="glass diagnostic ${c ? "available" : "unavailable"}">${u}</section>`;
+function Ut(e) {
+	let t = e.config.entities.media, n = Qe(e.hass, t), r = n?.entityId ?? t.primary, i = n?.entity ?? (r === void 0 ? void 0 : e.hass.states[r]), a = r === void 0 ? void 0 : O(r), o = i === void 0 ? "disabled" : "";
+	return `${q(e, "Media overview", "Whole-house audio and television control")}<main class="page-grid media-grid"><section class="glass rooms media-living"><div class="card-title">Living room</div>${Q(e, t.primary, "Surround speakers", "mdi:speaker-multiple")}${Q(e, t.livingTv, "Living room TV", "mdi:television")}</section><section class="glass now media-now">${yt(e)}<div class="now-content"><div class="card-title">Now playing</div><div class="album">${_t(e, !1)}</div><h2>${O(H(i, "media_title", "No media playing"))}</h2><span>${O(H(i, "media_artist", "Select a source to start listening"))}</span>${a === void 0 ? "" : `<div class="transport"><button class="media-action" data-action="media" data-entity="${a}" data-command="media_previous_track" aria-label="Previous track" ${o}>${V("mdi:skip-previous")}</button><button class="media-action" data-action="media" data-entity="${a}" data-command="media_play_pause" aria-label="Play or pause" ${o}>${V("mdi:play")}</button><button class="media-action" data-action="media" data-entity="${a}" data-command="media_next_track" aria-label="Next track" ${o}>${V("mdi:skip-next")}</button></div>`}</div></section><section class="glass rooms media-private"><div class="card-title">Private rooms</div>${Q(e, t.bedroom, "Master bedroom", "mdi:bed-king-outline")}${Q(e, t.study, "Study", "mdi:bookshelf")}</section><section class="glass rooms media-whole"><div class="card-title">Common areas</div>${Q(e, t.family, "Family lounge", "mdi:sofa-outline")}${Q(e, t.kitchen, "Kitchen", "mdi:silverware-fork-knife")}${Q(e, t.dining, "Dining", "mdi:table-furniture")}${Q(e, t.roam, "Sonos Roam", "mdi:speaker-wireless")}</section><section class="glass quick media-quick"><div class="card-title">Quick controls</div>${a === void 0 ? "" : `<button class="media-action" data-action="media" data-entity="${a}" data-command="media_pause" ${o}>${V("mdi:pause")} Pause all</button>`}${e.config.sonoraUrl === void 0 ? "<p>Sonos controller URL not configured.</p>" : `<a href="${O(K(e.config, "sonos"))}">${V("mdi:speaker-multiple")} Open Sonos controller</a>`}</section></main>`;
 }
 function Wt(e) {
+	return `${q(e, "Sonos controller", "Connected whole-house audio control")}<main class="sonos-workspace">${e.config.sonoraUrl === void 0 ? `<section class="glass empty"><div>${V("mdi:speaker-multiple")}<h2>Whole-house audio</h2><p>Add the HTTPS Sonora URL in the visual editor.</p></div></section>` : `<iframe class="sonos-frame" src="${O(e.config.sonoraUrl)}" title="Sonos whole-house controller" loading="eager" referrerpolicy="no-referrer" allow="autoplay; fullscreen"></iframe><div class="sonos-curtain" data-sonos-curtain role="status"><span>${V("mdi:speaker-multiple")}</span><strong>Preparing Sonos controls</strong><small>Applying the H2DC appearance</small></div>`}</main>`;
+}
+function Gt(e, t, n, r, i = "", a) {
+	let o = r === void 0 ? { status: "unavailable" } : D(e.hass, r), s = o.status === "available" ? k(o.value) : W(e, r), c = s !== "Unavailable", l = s === "on" ? "Tap to turn off" : s === "off" ? "Tap to turn on" : "Control unavailable", u = `<span class="round">${V(t)}</span><div><small>${O(n)}</small><strong>${O(s)}${c ? O(i) : ""}</strong><span class="diagnostic-hint">${a !== void 0 && c ? l : c ? "Live status" : "Not configured"}</span></div>`;
+	return a !== void 0 && r !== void 0 ? `<button class="glass diagnostic diagnostic-control ${c ? "available" : "unavailable"}" data-action="${a}" data-entity="${O(r)}" ${c ? "" : "disabled"}>${u}</button>` : `<section class="glass diagnostic ${c ? "available" : "unavailable"}">${u}</section>`;
+}
+function Kt(e) {
 	let t = e.config.entities.diagnostics, n = [
 		[
 			"mdi:battery",
@@ -3156,31 +3171,31 @@ function Wt(e) {
 			" W"
 		]
 	], r = n.filter(([, , t]) => W(e, t) === "Unavailable").length;
-	return `${q(e, "System overview", r === 0 ? "Tablet and PoE telemetry online" : `${r} diagnostics unavailable`)}<main class="page-grid diagnostics-grid">${n.map(([t, n, r, i]) => Ut(e, t, n, r, i, n === "PoE port")).join("")}<section class="glass diagnostic-note"><div class="card-title">Commissioning status</div><p>Tablet telemetry remains read-only. The PoE control requires confirmation before Home Assistant changes the wall-tablet power feed.</p></section></main>`;
+	return `${q(e, "System overview", r === 0 ? "Tablet and PoE telemetry online" : `${r} diagnostics unavailable`)}<main class="page-grid diagnostics-grid">${n.map(([t, n, r, i]) => Gt(e, t, n, r, i, n === "PoE port" ? "poe-toggle" : void 0)).join("")}${Gt(e, "mdi:ev-station", "EV simulation", t.evChargingDemoControl, "", "ev-demo-toggle")}<section class="glass diagnostic-note"><div class="card-title">Commissioning status</div><p>Tablet telemetry remains read-only. PoE changes require confirmation; EV simulation only changes whether the demonstration tab is available.</p></section></main>`;
 }
-function Gt(e) {
+function qt(e) {
 	switch (e.config.view) {
-		case "home": return kt(e);
-		case "security": return Mt(e);
-		case "energy": return e.powerFloAvailable === !1 ? bt(e) : Nt(e);
-		case "charging": return yt(e);
-		case "climate": return It(e);
-		case "lights": return Bt(e);
-		case "media": return Vt(e);
-		case "sonos": return Ht(e);
-		case "diagnostics": return Wt(e);
+		case "home": return jt(e);
+		case "security": return Pt(e);
+		case "energy": return e.powerFloAvailable === !1 ? St(e) : Ft(e);
+		case "charging": return xt(e);
+		case "climate": return Rt(e);
+		case "lights": return Ht(e);
+		case "media": return Ut(e);
+		case "sonos": return Wt(e);
+		case "diagnostics": return Kt(e);
 		default: return e.config.view;
 	}
 }
 // src/powerflo-adapter.ts
-var Kt = "powerflo-card", qt = "sensor.h2dc_powerflo_telemetry_status";
-function Jt(e, t) {
+var Jt = "powerflo-card", Yt = "sensor.h2dc_powerflo_telemetry_status";
+function Xt(e, t) {
 	return e !== t;
 }
-function Yt(e, t, n) {
-	Jt(e, t) && n();
+function Zt(e, t, n) {
+	Xt(e, t) && n();
 }
-function Xt(e, t) {
+function Qt(e, t) {
 	let n = t.gridConnected, r = n === void 0 ? void 0 : e.states[n], i = r?.state === "1.0" ? "on" : r?.state === "0.0" ? "off" : void 0, a = i === void 0 || n === void 0 || r === void 0 ? e.states : {
 		...e.states,
 		[n]: {
@@ -3192,8 +3207,8 @@ function Xt(e, t) {
 		let n = e.states[t.freshness], r = n?.state === "on" ? "Online" : n?.state === "off" ? "Telemetry stale" : "Telemetry unavailable";
 		a = {
 			...a,
-			[qt]: {
-				entity_id: qt,
+			[Yt]: {
+				entity_id: Yt,
 				state: r,
 				attributes: {
 					friendly_name: "H2DC PowerFlo telemetry status",
@@ -3214,7 +3229,7 @@ function Xt(e, t) {
 		...e.callWS === void 0 ? {} : { callWS: (t) => e.callWS?.(t) ?? Promise.reject(/* @__PURE__ */ Error("Home Assistant WebSocket API unavailable")) }
 	};
 }
-function Zt(e) {
+function $t(e) {
 	let t = Object.fromEntries([
 		["freshness", "freshness"],
 		["inverterStatus", "inverter_status"],
@@ -3264,10 +3279,10 @@ function Zt(e) {
 	}));
 	return e.inverterStatus === void 0 ? {
 		...t,
-		inverter_status: qt
+		inverter_status: Yt
 	} : t;
 }
-function Qt(e) {
+function en(e) {
 	return {
 		title: e.title,
 		inverter_name: e.inverterName,
@@ -3310,25 +3325,25 @@ function Qt(e) {
 		flow_release_w: e.flowReleaseW
 	};
 }
-function $t(e) {
+function tn(e) {
 	return {
 		type: "custom:powerflo-card",
-		...Qt(e.powerFlo),
+		...en(e.powerFlo),
 		flow_threshold_w: e.flowThresholdW,
 		battery_positive: e.batteryPositiveIs,
 		grid_positive: e.gridPositiveIs,
 		weather_entity: e.entities.weather,
-		entities: Zt(e.entities.energy)
+		entities: $t(e.entities.energy)
 	};
 }
-function en(e, t, n, r) {
+function nn(e, t, n, r) {
 	if (customElements.get("powerflo-card") === void 0) return;
 	let i = r ?? document.createElement("powerflo-card");
-	return r === void 0 && (i.classList.add("powerflo-card"), i.setConfig($t(t))), i.hass = Xt(n, t.entities.energy), Yt(i.parentElement, e, () => e.replaceChildren(i)), i;
+	return r === void 0 && (i.classList.add("powerflo-card"), i.setConfig(tn(t))), i.hass = Qt(n, t.entities.energy), Zt(i.parentElement, e, () => e.replaceChildren(i)), i;
 }
 // src/sonora-frame.ts
-var tn = z.readiness.sonoraThemeSettle, nn = z.readiness.sonoraThemeTimeout;
-async function rn(e, t, n, r = (e) => new Promise((t) => window.setTimeout(t, e))) {
+var rn = z.readiness.sonoraThemeSettle, an = z.readiness.sonoraThemeTimeout;
+async function on(e, t, n, r = (e) => new Promise((t) => window.setTimeout(t, e))) {
 	let i = new URL("/api/themes", e), a = () => new Promise(() => {}), o = t(i, {
 		credentials: "omit",
 		signal: n
@@ -3337,30 +3352,30 @@ async function rn(e, t, n, r = (e) => new Promise((t) => window.setTimeout(t, e)
 	});
 	await Promise.race([
 		o,
-		r(nn),
+		r(an),
 		s
-	]), n.aborted || await r(tn);
+	]), n.aborted || await r(rn);
 }
-function an(e) {
+function sn(e) {
 	return JSON.stringify(e);
 }
-function on(e, t, n) {
+function cn(e, t, n) {
 	return e === "sonos" && !t && n;
 }
 // src/index.ts
-function sn() {
+function ln() {
 	return "<dialog class=\"energy-dialog\" data-energy-dialog aria-labelledby=\"energy-dialog-title\"><div class=\"energy-dialog-frame\"><header class=\"energy-dialog-header\"><div><span>Energy detail</span><h2 id=\"energy-dialog-title\" data-energy-dialog-title>Energy analysis</h2><p data-energy-dialog-summary>Live read-only telemetry and recorded history.</p></div><button class=\"dialog-close\" data-action=\"energy-detail-close\" aria-label=\"Close energy details\">×</button></header><section data-energy-focused-host hidden></section><section class=\"powerflo-host\" data-powerflo-host aria-label=\"Complete PowerFlo energy dashboard\" hidden></section><section class=\"glass dependency\" data-powerflo-missing role=\"status\" hidden><h2>PowerFlo is not loaded</h2><p>Install and register the PowerFlo resource to preserve live flow, both battery estimates, history, readiness, insights and solar outlook.</p></section></div></dialog>";
 }
-function cn() {
+function un() {
 	return "<dialog class=\"energy-dialog security-dialog\" data-security-dialog aria-labelledby=\"security-dialog-title\"><div class=\"security-dialog-frame\"><header class=\"energy-dialog-header\"><div><span>UniFi Protect &middot; medium stream</span><h2 id=\"security-dialog-title\" data-security-dialog-title>Camera</h2><p>Live playback starts only for the selected camera and stops when this dialog closes.</p></div><button class=\"dialog-close\" data-action=\"camera-detail-close\" aria-label=\"Close live camera\">&times;</button></header><section class=\"security-stream\"><img data-security-stream alt=\"\" hidden><p class=\"security-stream-status\" data-security-stream-status role=\"status\">Select a camera to begin medium-quality playback.</p></section></div></dialog>";
 }
-function ln() {
+function dn() {
 	return "<dialog class=\"energy-dialog pulse-dialog\" data-pulse-dialog aria-labelledby=\"pulse-dialog-title\"><div class=\"pulse-dialog-frame\"><header class=\"energy-dialog-header\"><div><span>House Pulse</span><h2 id=\"pulse-dialog-title\" data-pulse-dialog-title>Home status</h2><p data-pulse-dialog-summary>Live configured household telemetry.</p></div><button class=\"dialog-close\" data-action=\"pulse-detail-close\" aria-label=\"Close House Pulse details\">&times;</button></header><section class=\"pulse-detail-list\" data-pulse-detail-list></section></div></dialog>";
 }
-function un(e) {
+function fn(e) {
 	return e.replaceAll("\\", "\\\\").replaceAll("\"", "\\\"").replaceAll("\n", "").replaceAll("\r", "");
 }
-function dn(e, t, n) {
+function pn(e, t, n) {
 	let r = e.backgrounds.perView[e.view];
 	if (r !== void 0) return r;
 	let i = t.states["sun.sun"]?.state;
@@ -3371,7 +3386,7 @@ function $(e, t) {
 	if (n === void 0 || n === "") throw Error(`Missing interaction data: ${String(t)}`);
 	return n;
 }
-function fn(e) {
+function mn(e) {
 	if (e instanceof HTMLElement && e.dataset.action !== void 0) return {
 		action: e.dataset.action,
 		...e.dataset.entity === void 0 ? {} : { entity: e.dataset.entity },
@@ -3380,39 +3395,40 @@ function fn(e) {
 		...e.dataset.value === void 0 ? {} : { value: e.dataset.value }
 	};
 }
-function pn(e, t) {
+function hn(e, t) {
 	return e.dataset.action === t.action && e.dataset.entity === t.entity && e.dataset.command === t.command && e.dataset.mode === t.mode && e.dataset.value === t.value;
 }
-var mn = class extends HTMLElement {
+var gn = class extends HTMLElement {
 	#e;
 	#t;
 	#n;
 	#r;
 	#i;
 	#a = !1;
-	#o = [];
-	#s = "";
-	#c;
+	#o = !1;
+	#s = [];
+	#c = "";
 	#l;
 	#u;
 	#d;
 	#f;
 	#p;
-	#m = !0;
-	#h;
-	#g = "";
-	#_ = new tt();
-	#v = () => {
+	#m;
+	#h = !0;
+	#g;
+	#_ = "";
+	#v = new rt();
+	#y = () => {
 		this.style.removeProperty("--h2dc-offset-x"), this.style.removeProperty("--h2dc-offset-y");
 		let e = this.getBoundingClientRect();
 		this.style.setProperty("--h2dc-offset-x", `${-e.left}px`), this.style.setProperty("--h2dc-offset-y", `${-e.top}px`);
 	};
 	constructor() {
-		super(), this.#e = this.attachShadow({ mode: "open" }), this.#e.innerHTML = `<style>${nt}</style><div data-render-frame></div><div data-persistent-layer></div>`, this.#t = window.matchMedia("(prefers-reduced-motion: reduce)"), this.#e.addEventListener("click", (e) => this.#x(e)), this.#e.addEventListener("change", (e) => this.#j(e)), this.#t.addEventListener("change", () => this.#N());
+		super(), this.#e = this.attachShadow({ mode: "open" }), this.#e.innerHTML = `<style>${it}</style><div data-render-frame></div><div data-persistent-layer></div>`, this.#t = window.matchMedia("(prefers-reduced-motion: reduce)"), this.#e.addEventListener("click", (e) => this.#S(e)), this.#e.addEventListener("change", (e) => this.#M(e)), this.#t.addEventListener("change", () => this.#P());
 	}
 	connectedCallback() {
-		window.requestAnimationFrame(this.#v), window.addEventListener("resize", this.#v), customElements.whenDefined(Kt).then(() => {
-			this.isConnected && this.#N();
+		window.requestAnimationFrame(this.#y), window.addEventListener("resize", this.#y), customElements.whenDefined(Jt).then(() => {
+			this.isConnected && this.#P();
 		});
 	}
 	static getConfigElement() {
@@ -3426,41 +3442,41 @@ var mn = class extends HTMLElement {
 		}) };
 	}
 	setConfig(e) {
-		this.#a = Ee(e);
-		let t = C(this.#a ? De(e) : e), n = t.status === "valid" ? an(t.config) : void 0, r = n !== void 0 && n === this.#r;
-		r || (this.#g = T(this.#g, { reason: "config-change" })), this.#n = t.status === "valid" ? t.config : void 0, this.#o = t.status === "invalid" ? t.issues : [], this.#r = n, r ? (this.#b(), this.#N()) : (this.#p = void 0, this.#m = !0, this.#_.disconnect(), this.#e.querySelector("[data-persistent-layer]")?.replaceChildren(), this.#b(), this.#N());
+		this.#a = De(e);
+		let t = C(this.#a ? ke(e) : e), n = t.status === "valid" ? sn(t.config) : void 0, r = n !== void 0 && n === this.#r;
+		r || (this.#_ = T(this.#_, { reason: "config-change" })), this.#n = t.status === "valid" ? t.config : void 0, this.#s = t.status === "invalid" ? t.issues : [], this.#r = n, r ? (this.#x(), this.#P()) : (this.#m = void 0, this.#h = !0, this.#v.disconnect(), this.#e.querySelector("[data-persistent-layer]")?.replaceChildren(), this.#x(), this.#P());
 	}
 	set hass(e) {
-		this.#i = this.#a ? Oe(e) : e, this.#b(), this.#N();
+		this.#o = this.#n !== void 0 && this.#a ? Oe(this.#n, e) : !1, this.#i = this.#o ? Ae(e) : e, this.#x(), this.#P();
 	}
 	disconnectedCallback() {
-		this.#g = T(this.#g, { reason: "disconnect" }), this.#_.disconnect(), this.#h?.abort(), this.#h = void 0, window.removeEventListener("resize", this.#v);
+		this.#_ = T(this.#_, { reason: "disconnect" }), this.#v.disconnect(), this.#g?.abort(), this.#g = void 0, window.removeEventListener("resize", this.#y);
 	}
-	#y(e) {
+	#b(e) {
 		let t = e.querySelector(".sonos-frame"), n = e.querySelector(".sonos-workspace");
 		t !== null && n !== null && t.addEventListener("load", () => {
-			this.#h?.abort();
+			this.#g?.abort();
 			let e = new AbortController();
-			this.#h = e, rn(t.src, window.fetch.bind(window), e.signal).then(() => {
-				!e.signal.aborted && n.isConnected && (n.classList.add("sonora-ready"), n.querySelector("[data-sonos-curtain]")?.setAttribute("aria-hidden", "true"), this.#h === e && (this.#h = void 0));
+			this.#g = e, on(t.src, window.fetch.bind(window), e.signal).then(() => {
+				!e.signal.aborted && n.isConnected && (n.classList.add("sonora-ready"), n.querySelector("[data-sonos-curtain]")?.setAttribute("aria-hidden", "true"), this.#g === e && (this.#g = void 0));
 			});
 		}, { once: !0 });
 	}
 	getCardSize() {
 		return 9;
 	}
-	#b() {
+	#x() {
 		let e = this.#n, t = this.#i;
 		if (e === void 0 || t === void 0) return;
-		let n = Ze(t, e.entities.media), r = Xe(t, e.entities.media)?.entity, i = r?.attributes.media_title, a = r?.attributes.media_artist, o = typeof i == "string" ? i.trim() : "", s = typeof a == "string" ? a.trim() : "";
-		this.#_.sync({
+		let n = $e(t, e.entities.media), r = Qe(t, e.entities.media)?.entity, i = r?.attributes.media_title, a = r?.attributes.media_artist, o = typeof i == "string" ? i.trim() : "", s = typeof a == "string" ? a.trim() : "";
+		this.#v.sync({
 			native: n,
 			title: o,
 			artist: s,
 			...e.sonoraUrl === void 0 ? {} : { sonoraUrl: e.sonoraUrl }
-		}, () => this.#N());
+		}, () => this.#P());
 	}
-	async #x(e) {
+	async #S(e) {
 		let t = e.target;
 		if (!(t instanceof Element)) return;
 		let n = t.closest("[data-action]");
@@ -3468,43 +3484,43 @@ var mn = class extends HTMLElement {
 			let e = $(n, "action");
 			if (e === "alarm-code-digit") {
 				let e = $(n, "digit");
-				if (!/^\d$/u.test(e) || this.#g.length >= 12) return;
-				this.#g += e, this.#S();
+				if (!/^\d$/u.test(e) || this.#_.length >= 12) return;
+				this.#_ += e, this.#C();
 				return;
 			}
 			if (e === "alarm-code-clear") {
-				this.#g = "", this.#S();
+				this.#_ = "", this.#C();
 				return;
 			}
 			if (e === "energy-detail") {
 				let e = n.dataset.detail;
 				if (e === void 0 || !(e in Ce)) throw Error("Unknown energy detail");
-				this.#c = e, this.#l = n, this.#C();
+				this.#l = e, this.#u = n, this.#w();
 				return;
 			}
 			if (e === "energy-detail-close") {
-				this.#T();
+				this.#E();
 				return;
 			}
 			if (e === "camera-detail") {
-				this.#u = {
+				this.#d = {
 					entity: $(n, "entity"),
 					label: $(n, "label")
-				}, this.#E();
+				}, this.#D();
 				return;
 			}
 			if (e === "camera-detail-close") {
-				this.#D();
+				this.#O();
 				return;
 			}
 			if (e === "pulse-detail") {
 				let e = n.dataset.category;
-				if (e === void 0 || !Ve.some((t) => t === e)) throw Error("Unknown House Pulse category");
-				this.#d = e, this.#f = n, this.#O();
+				if (e === void 0 || !Ue.some((t) => t === e)) throw Error("Unknown House Pulse category");
+				this.#f = e, this.#p = n, this.#k();
 				return;
 			}
 			if (e === "pulse-detail-close") {
-				this.#k();
+				this.#A();
 				return;
 			}
 			let t = this.#i;
@@ -3515,8 +3531,8 @@ var mn = class extends HTMLElement {
 				await w(t, {
 					type: "alarm_disarm",
 					entityId: e,
-					code: this.#g
-				}), this.#g = "", this.#S(), this.#M("Disarm command sent");
+					code: this.#_
+				}), this.#_ = "", this.#C(), this.#N("Disarm command sent");
 				return;
 			}
 			let r = $(n, "entity");
@@ -3528,7 +3544,17 @@ var mn = class extends HTMLElement {
 					type: "poe_toggle",
 					entityId: r,
 					allowedEntityId: e
-				}), this.#M("Tablet power command sent");
+				}), this.#N("Tablet power command sent");
+				return;
+			}
+			if (e === "ev-demo-toggle") {
+				let e = this.#n?.entities.diagnostics.evChargingDemoControl;
+				if (e === void 0) throw Error("EV simulation control is not configured");
+				await w(t, {
+					type: "ev_demo_toggle",
+					entityId: r,
+					allowedEntityId: e
+				}), this.#N("EV simulation setting changed");
 				return;
 			}
 			if (e === "ocpp-toggle") {
@@ -3538,7 +3564,7 @@ var mn = class extends HTMLElement {
 					type: "ocpp_toggle",
 					entityId: r,
 					allowedEntityId: e
-				}), this.#M("Charging command sent");
+				}), this.#N("Charging command sent");
 				return;
 			}
 			if (e === "toggle") await w(t, {
@@ -3566,66 +3592,66 @@ var mn = class extends HTMLElement {
 				command: $(n, "command")
 			});
 			else return;
-			this.#M("Command sent");
+			this.#N("Command sent");
 		} catch (e) {
-			this.#s = e instanceof Error ? e.message : "Command failed", this.#N();
+			this.#c = e instanceof Error ? e.message : "Command failed", this.#P();
 		}
 	}
-	#S() {
-		let e = this.#e.querySelector("[data-alarm-code-display]");
-		e !== null && (e.textContent = this.#g === "" ? "Enter code" : "•".repeat(this.#g.length), e.setAttribute("aria-label", this.#g === "" ? "No alarm code entered" : `${this.#g.length} alarm code digits entered`));
-	}
 	#C() {
-		let e = this.#c, t = this.#n, n = this.#i, r = this.#e.querySelector("[data-energy-dialog]");
+		let e = this.#e.querySelector("[data-alarm-code-display]");
+		e !== null && (e.textContent = this.#_ === "" ? "Enter code" : "•".repeat(this.#_.length), e.setAttribute("aria-label", this.#_ === "" ? "No alarm code entered" : `${this.#_.length} alarm code digits entered`));
+	}
+	#w() {
+		let e = this.#l, t = this.#n, n = this.#i, r = this.#e.querySelector("[data-energy-dialog]");
 		if (e === void 0 || t === void 0 || n === void 0 || r === null) return;
 		let [i, a] = Ce[e], o = r.querySelector("[data-energy-dialog-title]"), s = r.querySelector("[data-energy-dialog-summary]");
 		o !== null && (o.textContent = i), s !== null && (s.textContent = a);
 		let c = r.querySelector("[data-energy-focused-host]"), l = r.querySelector("[data-powerflo-host]"), u = r.querySelector("[data-powerflo-missing]"), d = we(e);
-		c !== null && (c.hidden = d, c.innerHTML = d ? "" : Te(e, t, n)), l !== null && (l.hidden = !d), u !== null && (u.hidden = !d || this.#p !== void 0), r.open || r.showModal();
+		c !== null && (c.hidden = d, c.innerHTML = d ? "" : Te(e, t, n)), l !== null && (l.hidden = !d), u !== null && (u.hidden = !d || this.#m !== void 0), r.open || r.showModal();
 	}
-	#w(e) {
-		if (!Ke(e.open)) return;
-		let t = this.#c;
-		this.#c = void 0;
-		let n = t === void 0 ? void 0 : this.#e.querySelector(`[data-action="energy-detail"][data-detail="${t}"]`) ?? void 0, r = this.#l?.isConnected === !0 ? this.#l : n;
-		this.#l = void 0, qe(r, window.requestAnimationFrame.bind(window));
+	#T(e) {
+		if (!Je(e.open)) return;
+		let t = this.#l;
+		this.#l = void 0;
+		let n = t === void 0 ? void 0 : this.#e.querySelector(`[data-action="energy-detail"][data-detail="${t}"]`) ?? void 0, r = this.#u?.isConnected === !0 ? this.#u : n;
+		this.#u = void 0, Ye(r, window.requestAnimationFrame.bind(window));
 	}
-	#T() {
+	#E() {
 		let e = this.#e.querySelector("[data-energy-dialog]");
 		e?.open === !0 && e.close();
 	}
-	#E() {
-		let e = this.#u, t = this.#i, n = this.#e.querySelector("[data-security-dialog]");
+	#D() {
+		let e = this.#d, t = this.#i, n = this.#e.querySelector("[data-security-dialog]");
 		if (e === void 0 || t === void 0 || n === null) return;
 		let r = n.querySelector("[data-security-dialog-title]"), i = n.querySelector("[data-security-stream]"), a = n.querySelector("[data-security-stream-status]");
 		r !== null && (r.textContent = e.label);
 		let o = fe(e.entity, t.states[e.entity]?.attributes.entity_picture, window.location.origin);
 		i !== null && a !== null && (o === void 0 ? (i.hidden = !0, i.removeAttribute("src"), i.alt = "", a.hidden = !1, a.textContent = "The configured medium stream is unavailable. High-resolution fallback is intentionally disabled.") : (i.alt = `${e.label} live camera`, i.getAttribute("src") !== o && (i.src = o), i.hidden = !1, a.hidden = !0)), n.addEventListener("close", () => {
-			let e = this.#u;
-			this.#u = void 0, i !== null && (i.removeAttribute("src"), i.hidden = !0), a !== null && (a.hidden = !1), e !== void 0 && qe([...this.#e.querySelectorAll("[data-action=\"camera-detail\"]")].find((t) => t.dataset.entity === e.entity), window.requestAnimationFrame.bind(window));
+			let e = this.#d;
+			this.#d = void 0, i !== null && (i.removeAttribute("src"), i.hidden = !0), a !== null && (a.hidden = !1), e !== void 0 && Ye([...this.#e.querySelectorAll("[data-action=\"camera-detail\"]")].find((t) => t.dataset.entity === e.entity), window.requestAnimationFrame.bind(window));
 		}, { once: !0 }), n.open || n.showModal();
 	}
-	#D() {
+	#O() {
 		let e = this.#e.querySelector("[data-security-dialog]");
 		e?.open === !0 && e.close();
 	}
-	#O() {
-		let e = this.#d, t = this.#n, n = this.#i, r = this.#e.querySelector("[data-pulse-dialog]");
+	#k() {
+		let e = this.#f, t = this.#n, n = this.#i, r = this.#e.querySelector("[data-pulse-dialog]");
 		if (e === void 0 || t === void 0 || n === void 0 || r === null) return;
-		let i = Ge(t, n, e), a = r.querySelector("[data-pulse-dialog-title]"), o = r.querySelector("[data-pulse-dialog-summary]"), s = r.querySelector("[data-pulse-detail-list]");
+		let i = qe(t, n, e), a = r.querySelector("[data-pulse-dialog-title]"), o = r.querySelector("[data-pulse-dialog-summary]"), s = r.querySelector("[data-pulse-detail-list]");
 		a !== null && (a.textContent = i.title), o !== null && (o.textContent = i.description), s !== null && (s.innerHTML = i.items.length === 0 ? "<p class=\"pulse-empty\">Configure one or more sources for this summary.</p>" : i.items.map((e) => `<div class="pulse-detail-item ${e.state}"><ha-icon icon="${O(e.icon)}" aria-hidden="true"></ha-icon><span><strong>${O(e.label)}</strong><small>${O(e.value)}</small></span></div>`).join("")), r.open || r.showModal();
 	}
-	#k() {
+	#A() {
 		let e = this.#e.querySelector("[data-pulse-dialog]");
 		e?.open === !0 && e.close();
 	}
-	#A(e) {
-		if (!Ke(e.open)) return;
-		this.#d = void 0;
-		let t = this.#f?.isConnected === !0 ? this.#f : void 0;
-		this.#f = void 0, qe(t, window.requestAnimationFrame.bind(window));
+	#j(e) {
+		if (!Je(e.open)) return;
+		this.#f = void 0;
+		let t = this.#p?.isConnected === !0 ? this.#p : void 0;
+		this.#p = void 0, Ye(t, window.requestAnimationFrame.bind(window));
 	}
-	async #j(e) {
+	async #M(e) {
 		let t = e.target;
 		if (t instanceof HTMLInputElement && t.dataset.action === "brightness" && !t.disabled) try {
 			let e = this.#i;
@@ -3634,85 +3660,86 @@ var mn = class extends HTMLElement {
 				type: "set_light_brightness",
 				entityId: $(t, "entity"),
 				brightnessPercent: Number(t.value)
-			}), this.#M("Brightness updated");
+			}), this.#N("Brightness updated");
 		} catch (e) {
-			this.#s = e instanceof Error ? e.message : "Brightness update failed", this.#N();
+			this.#c = e instanceof Error ? e.message : "Brightness update failed", this.#P();
 		}
 	}
-	#M(e) {
-		this.#s = e;
+	#N(e) {
+		this.#c = e;
 		let t = this.#e.querySelector("[data-live-status]");
 		t !== null && (t.textContent = e);
 	}
-	#N() {
-		let e = fn(this.#e.activeElement);
+	#P() {
+		let e = mn(this.#e.activeElement);
 		this.classList.toggle("admin", new URLSearchParams(window.location.search).get("h2dc_admin") === "1");
 		let t = this.#n, n = this.#i, r = this.#e.querySelector("[data-render-frame]"), i = this.#e.querySelector("[data-persistent-layer]");
 		if (r === null || i === null) return;
 		if (t === void 0) {
-			this.#g = T(this.#g, { reason: "config-change" }), r.innerHTML = `<section class="setup" role="status"><strong>Configure H2DC</strong><p>Select the required alarm, climate, weather, room-temperature, and energy entities in the visual editor.</p><ul>${this.#o.map((e) => `<li>${O(e)}</li>`).join("")}</ul></section>`;
+			this.#_ = T(this.#_, { reason: "config-change" }), r.innerHTML = `<section class="setup" role="status"><strong>Configure H2DC</strong><p>Select the required alarm, climate, weather, room-temperature, and energy entities in the visual editor.</p><ul>${this.#s.map((e) => `<li>${O(e)}</li>`).join("")}</ul></section>`;
 			return;
 		}
 		if (n === void 0) {
 			r.innerHTML = "<section class=\"setup\" role=\"status\"><strong>Connecting to Home Assistant</strong><p>Waiting for the first state update.</p></section>";
 			return;
 		}
-		if (this.#g = T(this.#g, {
+		if (this.#_ = T(this.#_, {
 			reason: "render",
 			view: t.view
-		}), on(t.view, this.#m, r.querySelector(".sonos-frame") !== null)) return;
-		let a = /* @__PURE__ */ new Date(), o = this.#_.artwork, s = customElements.get(Kt) !== void 0;
-		r.innerHTML = `<article class="shell" data-kiosk-profile="${O(t.presentation.kioskProfile)}" data-density="${O(t.presentation.density)}">${Gt({
+		}), cn(t.view, this.#h, r.querySelector(".sonos-frame") !== null)) return;
+		let a = /* @__PURE__ */ new Date(), o = this.#v.artwork, s = customElements.get(Jt) !== void 0;
+		r.innerHTML = `<article class="shell" data-kiosk-profile="${O(t.presentation.kioskProfile)}" data-density="${O(t.presentation.density)}">${qt({
 			config: t,
 			hass: n,
 			now: a,
 			reducedMotion: this.#t.matches,
 			powerFloAvailable: s,
+			evChargingDemoActive: this.#o,
 			...o === void 0 ? {} : { mediaArtwork: o }
-		})}<p class="sr-only" data-live-status aria-live="polite">${O(this.#s)}</p></article>`, this.#S(), this.#m = !1;
-		let c = r.querySelector(".shell"), l = dn(t, n, a);
-		if (c !== null && (c.style.setProperty("--accent", t.presentation.accent), c.style.setProperty("--h2dc-font-family", `"${un(t.presentation.fontFamily)}", system-ui, sans-serif`), c.style.setProperty("--h2dc-overlay-strength", String(t.presentation.overlayStrength)), l !== void 0 && c.style.setProperty("--active-background", `url("${un(l)}")`)), t.view === "sonos" && this.#y(r), t.view === "energy" && s) {
+		})}<p class="sr-only" data-live-status aria-live="polite">${O(this.#c)}</p></article>`, this.#C(), this.#h = !1;
+		let c = r.querySelector(".shell"), l = pn(t, n, a);
+		if (c !== null && (c.style.setProperty("--accent", t.presentation.accent), c.style.setProperty("--h2dc-font-family", `"${fn(t.presentation.fontFamily)}", system-ui, sans-serif`), c.style.setProperty("--h2dc-overlay-strength", String(t.presentation.overlayStrength)), l !== void 0 && c.style.setProperty("--active-background", `url("${fn(l)}")`)), t.view === "sonos" && this.#b(r), t.view === "energy" && s) {
 			if (i.querySelector("[data-energy-dialog]") === null) {
-				i.innerHTML = sn();
+				i.innerHTML = ln();
 				let e = i.querySelector("[data-energy-dialog]");
-				e?.addEventListener("close", () => this.#w(e));
+				e?.addEventListener("close", () => this.#T(e));
 			}
 			let e = i.querySelector("[data-powerflo-host]"), r = i.querySelector("[data-powerflo-missing]");
-			e !== null && (this.#p = en(e, t, n, this.#p), r !== null && (r.hidden = this.#c !== "analysis" || this.#p !== void 0)), this.#C();
+			e !== null && (this.#m = nn(e, t, n, this.#m), r !== null && (r.hidden = this.#l !== "analysis" || this.#m !== void 0)), this.#w();
 		} else {
-			this.#c = void 0, this.#l = void 0;
+			this.#l = void 0, this.#u = void 0;
 			let e = i.querySelector("[data-energy-dialog]");
 			e?.open === !0 && e.close();
 		}
-		if (t.view === "security") i.querySelector("[data-security-dialog]") === null && i.insertAdjacentHTML("beforeend", cn()), this.#E();
+		if (t.view === "security") i.querySelector("[data-security-dialog]") === null && i.insertAdjacentHTML("beforeend", un()), this.#D();
 		else {
-			this.#u = void 0;
+			this.#d = void 0;
 			let e = i.querySelector("[data-security-dialog]");
 			e?.open === !0 && e.close();
 		}
 		if (t.view === "home") {
 			if (i.querySelector("[data-pulse-dialog]") === null) {
-				i.insertAdjacentHTML("beforeend", ln());
+				i.insertAdjacentHTML("beforeend", dn());
 				let e = i.querySelector("[data-pulse-dialog]");
-				e?.addEventListener("close", () => this.#A(e));
+				e?.addEventListener("close", () => this.#j(e));
 			}
-			this.#O();
+			this.#k();
 		} else {
-			this.#d = void 0, this.#f = void 0;
+			this.#f = void 0, this.#p = void 0;
 			let e = i.querySelector("[data-pulse-dialog]");
 			e?.open === !0 && e.close();
 		}
-		e !== void 0 && [...this.#e.querySelectorAll("[data-action]")].find((t) => pn(t, e))?.focus({ preventScroll: !0 });
+		e !== void 0 && [...this.#e.querySelectorAll("[data-action]")].find((t) => hn(t, e))?.focus({ preventScroll: !0 });
 	}
 };
-function hn() {
-	customElements.get("h2dc-dashboard-card") || customElements.define("h2dc-dashboard-card", mn), customElements.get("h2dc-dashboard-editor") || customElements.define("h2dc-dashboard-editor", Be), window.customCards ??= [], window.customCards.some((e) => e.type === "h2dc-dashboard-card") || window.customCards.push({
+function _n() {
+	customElements.get("h2dc-dashboard-card") || customElements.define("h2dc-dashboard-card", gn), customElements.get("h2dc-dashboard-editor") || customElements.define("h2dc-dashboard-editor", He), window.customCards ??= [], window.customCards.some((e) => e.type === "h2dc-dashboard-card") || window.customCards.push({
 		type: "h2dc-dashboard-card",
 		name: "H2DC Dashboard",
 		description: "Configurable wall-tablet dashboard for Home Assistant",
 		preview: !1,
 		documentationURL: "https://github.com/flexyneat/h2dc-dashboard"
-	}), console.info(`H2DC Dashboard ${rt} loaded`);
+	}), console.info(`H2DC Dashboard ${at} loaded`);
 }
 // src/public-entry.ts
-hn();
+_n();

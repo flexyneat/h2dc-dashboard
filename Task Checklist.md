@@ -10,3 +10,6 @@
 - [not done] Commission the unknown-model charger against a compatible Home Assistant OCPP central-system integration.
 - [not done] Map verified charger entities and perform physical acceptance testing.
 - [done] Promote the accepted feature to production with an opt-in read-only simulator, commit, tag and release v1.3.0.
+- [done] Add a live System-view control for showing or hiding the simulated EV Charging tab.
+- [done] Commission a 4-second Apple TV console-light brightness transition without adding any off action.
+- [done] Build, deploy and read back the current v1.3.1 dashboard bundle.

@@ -94,6 +94,12 @@ describe("dispatchDashboardAction", () => {
     expect(forged.callService).not.toHaveBeenCalled();
   });
 
+  it("toggles only the exact configured EV simulation helper", async () => {
+    const harness = serviceHarness();
+    await dispatchDashboardAction(harness.hass, { type: "ev_demo_toggle", entityId: "input_boolean.h2dc_ev_charging_simulation", allowedEntityId: "input_boolean.h2dc_ev_charging_simulation" });
+    expect(harness.callService).toHaveBeenCalledWith("input_boolean", "toggle", { entity_id: "input_boolean.h2dc_ev_charging_simulation" });
+  });
+
   it("rejects non-finite numeric payloads", async () => {
     const harness = serviceHarness();
     await expect(dispatchDashboardAction(harness.hass, { type: "set_light_brightness", entityId: "light.lounge", brightnessPercent: Number.NaN })).rejects.toThrow("finite value");

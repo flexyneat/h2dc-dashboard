@@ -3,6 +3,7 @@
  */
 
 import { isRecord } from "./config-schema";
+import type { H2DCConfig } from "./domain";
 import type { HassEntity, HomeAssistant } from "./home-assistant";
 
 /** Public configuration flag for the read-only simulated charger. */
@@ -34,9 +35,24 @@ export function isEvChargingDemoRequested(input: unknown): boolean {
     && (input[EV_CHARGING_DEMO_FLAG] === true || input[LEGACY_PREVIEW_EV_CHARGING_DEMO_FLAG] === true);
 }
 
+/** Returns whether static configuration or a mapped Home Assistant helper enables the simulator capability. */
+export function isEvChargingDemoConfigured(input: unknown): boolean {
+  if (isEvChargingDemoRequested(input)) return true;
+  if (!isRecord(input) || !isRecord(input.entities) || !isRecord(input.entities.diagnostics)) return false;
+  const diagnostics = input.entities.diagnostics;
+  return typeof diagnostics.ev_charging_demo_control === "string"
+    || typeof diagnostics.evChargingDemoControl === "string";
+}
+
+/** Resolves the simulator's live state, giving a mapped helper precedence over the static flag. */
+export function isEvChargingDemoActive(config: H2DCConfig, hass: HomeAssistant): boolean {
+  const control = config.entities.diagnostics.evChargingDemoControl;
+  return control === undefined ? config.evChargingDemo : hass.states[control]?.state === "on";
+}
+
 /** Injects a complete read-only OCPP mapping without adding a charge-control entity. */
 export function withEvChargingDemoConfig(input: unknown): unknown {
-  if (!isEvChargingDemoRequested(input) || !isRecord(input)) return input;
+  if (!isEvChargingDemoConfigured(input) || !isRecord(input)) return input;
   const entities = isRecord(input.entities) ? input.entities : {};
   return {
     ...input,

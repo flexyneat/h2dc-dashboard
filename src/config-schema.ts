@@ -479,7 +479,7 @@ export function parseConfig(input: unknown): ConfigParseResult {
     primary: "primary", livingTv: "living_tv", bedroom: "bedroom", study: "study", family: "family", kitchen: "kitchen", dining: "dining", roam: "roam",
   }, "entities.media", issues);
   const diagnostics = parseOptionalEntityMap<DiagnosticEntities>(entities.diagnostics, {
-    tabletBattery: "tablet_battery", pluggedIn: "plugged_in", screen: "screen", currentPage: "current_page", poe: "poe", poePower: "poe_power",
+    tabletBattery: "tablet_battery", pluggedIn: "plugged_in", screen: "screen", currentPage: "current_page", poe: "poe", poePower: "poe_power", evChargingDemoControl: "ev_charging_demo_control",
   }, "entities.diagnostics", issues);
   const ocpp = parseOptionalEntityMap<OcppEntities>(entities.ocpp, {
     status: "status", power: "power", sessionEnergy: "session_energy", totalEnergy: "total_energy",
@@ -624,7 +624,7 @@ export function createDraftConfig(input: unknown): H2DCConfig {
         primary: "primary", livingTv: "living_tv", bedroom: "bedroom", study: "study", family: "family", kitchen: "kitchen", dining: "dining", roam: "roam",
       }, "entities.media", []),
       diagnostics: parseOptionalEntityMap<DiagnosticEntities>(entities.diagnostics, {
-        tabletBattery: "tablet_battery", pluggedIn: "plugged_in", screen: "screen", currentPage: "current_page", poe: "poe", poePower: "poe_power",
+        tabletBattery: "tablet_battery", pluggedIn: "plugged_in", screen: "screen", currentPage: "current_page", poe: "poe", poePower: "poe_power", evChargingDemoControl: "ev_charging_demo_control",
       }, "entities.diagnostics", []),
       ocpp: parseOptionalEntityMap<OcppEntities>(entities.ocpp, {
         status: "status", power: "power", sessionEnergy: "session_energy", totalEnergy: "total_energy",

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.1 - 2026-11-10
+
+- Added a Home Assistant input-boolean control on the System view for showing or hiding the simulated EV Charging workspace at runtime.
+- Preserved the static EV simulation flag for portable preview configurations while giving the mapped helper precedence in deployed dashboards.
+- Updated the Living Room Apple TV console-light automation commissioning target from a 2.5-second to a 4-second transition without changing its dim/brighten semantics.
+
 ## 1.3.0 — 2026-11-10
 
 - Promoted the accepted EV Charging workspace to production as v1.3.0.
